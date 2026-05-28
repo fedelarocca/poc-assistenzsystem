@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useCases } from "../../hooks/useCases";
 
 export default function CasesPage() {
@@ -8,6 +8,7 @@ export default function CasesPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const lastDeleteRef = useRef<number>(0);
 
   // Avoid hydration mismatch by waiting for local storage to load
   if (!isLoaded) {
@@ -32,6 +33,14 @@ export default function CasesPage() {
   const handleDelete = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
     e.stopPropagation(); // Prevent selecting the case when clicking delete
+
+    // Prevent rapid multiple clicks from triggering Chrome's dialog spam protection
+    const now = Date.now();
+    if (now - lastDeleteRef.current < 500) {
+      return;
+    }
+    lastDeleteRef.current = now;
+
     if (window.confirm("Möchten Sie diesen Analysefall wirklich löschen?")) {
       deleteCase(id);
     }
@@ -42,7 +51,7 @@ export default function CasesPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
         <h1 style={{ margin: 0 }}>Analysefälle</h1>
         {!isCreating && (
-          <button className="btn-primary" onClick={() => setIsCreating(true)}>
+          <button type="button" className="btn-primary" onClick={() => setIsCreating(true)}>
             Neuen Analysefall erstellen
           </button>
         )}
@@ -111,6 +120,7 @@ export default function CasesPage() {
                 </div>
               </div>
               <button 
+                type="button"
                 className="btn-danger" 
                 onClick={(e) => handleDelete(e, c.id)}
                 title="Fall löschen"

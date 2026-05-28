@@ -3,7 +3,7 @@
 ## Aktueller Stand
 
 Iteration I-02 wurde erfolgreich und vollumfänglich abgeschlossen und browserübergreifend stabilisiert. Das Assistenzsystem unterstützt nun die minimale Verwaltung von Analysefällen (Cases) lokal im Browser über `localStorage`. 
-Ein browserabhängiger Funktionsfehler bei der Case-Löschung (fehlerhaftes Zusammenspiel von `window.confirm` und Event-Bubbling in Google Chrome) wurde durch eine saubere Entkopplung der Click-Targets in der UI (`src/app/cases/page.tsx`) behoben. Zudem wurde das Laden von `localStorage` robuster gegen alte oder fehlerhafte Daten gehärtet. Die gesamte App baut fehlerfrei (`npm run build`), alle Evidence-Dokumente wurden aktualisiert, und der finale Code wurde sauber nach GitHub committet und gepusht.
+Ein browserabhängiges Interaktionsproblem bei der Case-Löschung in Google Chrome (Dialogue-Spam-Protection durch schnelle Klicks, wodurch `window.confirm` sofort auto-storniert wurde) wurde durch die Ergänzung von `type="button"`, Event-Absicherung (`preventDefault()`/`stopPropagation()`) und einem Doppelklick-Schutz via `useRef` im UI-Handler erfolgreich behoben. Dadurch bleibt die native `window.confirm`-Abfrage stabil und browserübergreifend fehlerfrei erhalten. Die gesamte App baut fehlerfrei (`npm run build`), alle Evidence-Dokumente wurden aktualisiert, und der finale Code wurde sauber nach GitHub committet und gepusht.
 
 ---
 
@@ -16,7 +16,9 @@ Ein browserabhängiger Funktionsfehler bei der Case-Löschung (fehlerhaftes Zusa
   - `src/app/cases/page.tsx` mit Formular zur Case-Erstellung, Listenansicht, Aktivierungsauswahl und Lösch-Button.
   - Integration von `globals.css` mit reinen Vanilla-CSS-Styles für die Case-Karten und Formularelemente.
 - **Bugfix & Browser-Stabilisierung (Edge vs. Chrome):**
-  - Entkopplung des Click-Ziels für die Auswahl (`case-info`) vom Delete-Button in der UI. Dadurch wird das Event-Bubbling zum Auswahl-Handler unterbrochen, was die Löschung in Chrome stabilisiert.
+  - Behebung des Chrome-Flashing-Fehlers bei `window.confirm` durch die Einführung eines Doppelklick-Schutzes (Ignorieren von Klicks unter 500ms Abstand) in `handleDelete` unter Verwendung eines React `useRef` (`lastDeleteRef`).
+  - Hinzufügen von expliziten `type="button"`-Attributen auf allen Aktions-Buttons.
+  - Entkopplung des Click-Ziels für die Auswahl (`case-info`) vom Delete-Button in der UI, um Event-Bubbling sauber auszuschliessen.
   - Härtung des `useCases`-Hooks gegen fehlerhafte oder verwaiste `localStorage`-Daten durch Validierung der `activeCaseId` auf Mount.
 - **Validierung:** Erfolgreicher Build mit `npm run build` nach der Stabilisierung.
 - **Git & GitHub:** Commit der browserübergreifenden Stabilisierung und erfolgreicher Push zu GitHub auf Branch `master`.
