@@ -2,8 +2,8 @@
 
 ## Aktueller Stand
 
-Iteration I-02 wurde erfolgreich und vollumfänglich abgeschlossen. Das Assistenzsystem unterstützt nun die minimale Verwaltung von Analysefällen (Cases) lokal im Browser über `localStorage`. 
-Ein kritischer Funktionsfehler bei der Case-Löschung wurde erfolgreich durch die Umstellung auf funktionale State-Updates im `useCases`-Hook behoben. Die gesamte App baut fehlerfrei (`npm run build`), die Funktionalität wurde verifiziert, alle Evidence-Dokumente wurden aktualisiert, und der finale Code wurde sauber nach GitHub committet und gepusht.
+Iteration I-02 wurde erfolgreich und vollumfänglich abgeschlossen und browserübergreifend stabilisiert. Das Assistenzsystem unterstützt nun die minimale Verwaltung von Analysefällen (Cases) lokal im Browser über `localStorage`. 
+Ein browserabhängiger Funktionsfehler bei der Case-Löschung (fehlerhaftes Zusammenspiel von `window.confirm` und Event-Bubbling in Google Chrome) wurde durch eine saubere Entkopplung der Click-Targets in der UI (`src/app/cases/page.tsx`) behoben. Zudem wurde das Laden von `localStorage` robuster gegen alte oder fehlerhafte Daten gehärtet. Die gesamte App baut fehlerfrei (`npm run build`), alle Evidence-Dokumente wurden aktualisiert, und der finale Code wurde sauber nach GitHub committet und gepusht.
 
 ---
 
@@ -15,10 +15,11 @@ Ein kritischer Funktionsfehler bei der Case-Löschung wurde erfolgreich durch di
   - `src/hooks/useCases.ts` zur persistenten Verwaltung von Cases via `localStorage`.
   - `src/app/cases/page.tsx` mit Formular zur Case-Erstellung, Listenansicht, Aktivierungsauswahl und Lösch-Button.
   - Integration von `globals.css` mit reinen Vanilla-CSS-Styles für die Case-Karten und Formularelemente.
-- **Bugfix (Korrekturschleife):**
-  - Behebung des UI-Löschfehlers durch Ersetzung der imperativen state-checks in `deleteCase` mit dem funktionalen Callback `setActiveCaseId((prev) => (prev === id ? null : prev))`.
-- **Validierung:** Erstellung und erfolgreicher Durchlauf automatisierter Tests mit Playwright sowie erfolgreicher Build mit `npm run build`.
-- **Git & GitHub:** Commit des Bugfixes und erfolgreicher Push zu GitHub auf Branch `master`.
+- **Bugfix & Browser-Stabilisierung (Edge vs. Chrome):**
+  - Entkopplung des Click-Ziels für die Auswahl (`case-info`) vom Delete-Button in der UI. Dadurch wird das Event-Bubbling zum Auswahl-Handler unterbrochen, was die Löschung in Chrome stabilisiert.
+  - Härtung des `useCases`-Hooks gegen fehlerhafte oder verwaiste `localStorage`-Daten durch Validierung der `activeCaseId` auf Mount.
+- **Validierung:** Erfolgreicher Build mit `npm run build` nach der Stabilisierung.
+- **Git & GitHub:** Commit der browserübergreifenden Stabilisierung und erfolgreicher Push zu GitHub auf Branch `master`.
 - **Dokumentationspflege:** Aktualisierung von `I-02_case-verwaltung.md` (Problems & Fixes), `I-02_prompts.md` (vollständige Prompts inkl. Korrekturen), `I-02_build_log.txt` und `I-02_git_commit.txt`.
 
 ---

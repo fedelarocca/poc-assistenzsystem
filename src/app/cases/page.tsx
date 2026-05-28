@@ -30,6 +30,7 @@ export default function CasesPage() {
   };
 
   const handleDelete = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
     e.stopPropagation(); // Prevent selecting the case when clicking delete
     if (window.confirm("Möchten Sie diesen Analysefall wirklich löschen?")) {
       deleteCase(id);
@@ -96,9 +97,13 @@ export default function CasesPage() {
             <div 
               key={c.id} 
               className={`case-card ${c.id === activeCaseId ? 'active' : ''}`}
-              onClick={() => selectCase(c.id)}
+              style={{ cursor: "default" }}
             >
-              <div className="case-info">
+              <div 
+                className="case-info"
+                onClick={() => selectCase(c.id)}
+                style={{ cursor: "pointer", flex: 1 }}
+              >
                 <h3>{c.title} {c.id === activeCaseId && <span style={{ fontSize: "0.8rem", color: "var(--primary-color)", marginLeft: "10px" }}>(Aktiv)</span>}</h3>
                 {c.description && <p style={{ margin: "5px 0 0 0" }}>{c.description}</p>}
                 <div className="case-meta">
