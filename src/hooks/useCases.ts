@@ -64,9 +64,7 @@ export function useCases() {
 
   const deleteCase = (id: string) => {
     setCases((prev) => prev.filter((c) => c.id !== id));
-    if (activeCaseId === id) {
-      setActiveCaseId(null);
-    }
+    setActiveCaseId((prev) => (prev === id ? null : prev));
   };
 
   return {
