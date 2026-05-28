@@ -31,23 +31,25 @@ I-02: Implementierung der Datenstruktur und Basis-Funktionalität für "Cases" (
 
 ## Aktueller Stand
 
-Iteration I-01 wurde erfolgreich abgeschlossen. Die technische Grundstruktur des PoC-Assistenzsystems (Next.js, TypeScript, Vanilla CSS) wurde aufgesetzt. Das Routing für die Kernobjekte steht und ist mit Platzhalterseiten sowie leeren Zuständen versehen. Die Startseite führt workflow-orientiert in den Prozess ein. Das Projekt wurde initialisiert, gecleanet, fehlerfrei gebaut und lokal in Git committet (inkl. Remote-URL-Konfiguration).
+Iteration I-02 wurde erfolgreich abgeschlossen. Das Assistenzsystem unterstützt nun die grundlegende Verwaltung von Analysefällen (Cases) lokal im Browser.
 
 ## Letzte erledigte Schritte
 
-- Next.js Projekt im App Router Setup initialisiert (ohne Tailwind CSS).
-- `globals.css` mit schlanken Vanilla-CSS-Variablen und grundlegenden Layout-Klassen (`app-layout`, `sidebar`, `main-content`, `card`, `btn-primary`) aufgebaut.
-- `layout.tsx` um eine einfache, serverseitig gerenderte Navigation erweitert.
-- `page.tsx` als workflow-orientierten Einstieg implementiert.
-- Platzhalterseiten für `/cases`, `/documents`, `/prompts`, `/results` und `/saved-results` angelegt (ohne Fachlogik, mit Empty States).
-- `npm run build` erfolgreich durchgeführt.
-- Git lokal konfiguriert und Änderungen in `I-01` committet.
-- GitHub Remote hinzugefügt.
-- Alle Evidence-Dateien für I-01 im Ordner `03_Evidence` angelegt.
+- **Aktueller Status:** Iteration I-02 abgeschlossen.
+- PoC Next.js Architektur (App Router, TS, Vanilla CSS) ist initialisiert.
+- Navigation und Grund-Layout stehen.
+- Minimale Case-Verwaltung auf `/cases` ist implementiert (Erstellen, Auswählen, Löschen, Anzeigen).
+- State Management per `localStorage` (Custom Hook `useCases`).
+- **Aktueller Branch:** `master`
+- **Letzter Stand:** Commit für I-02 gepusht (`I-02: implement minimal case management`).
+
+**Nächste Schritte / Offene Aufgaben:**
+- Start der Iteration I-03 (Dokumenten-Zuordnung, F2).
+- Die UI der Home-Seite ggf. noch um dynamische Links zu aktiven Cases erweitern, sofern gefordert.
+- Vorbereitung für die Supabase-Anbindung, falls in einer der nächsten Iterationen verlangt.
 
 ## Nächste geplante Iteration
 
-I-02: Implementierung der Datenstruktur und Basis-Funktionalität für "Cases" (Analysefälle).
 
 ## Ziel von I-02
 
