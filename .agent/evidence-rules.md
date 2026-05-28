@@ -142,18 +142,12 @@ Für jede Iteration `\[ITERATION-ID]` sind zu erstellen:
 
 
 
-Die Datei `\[ITERATION-ID]\_prompts.md` soll enthalten:
+Die Datei `\[ITERATION-ID]\_prompts.md` soll **strikt anhand der Vorlage `.agent/templates/prompt-extract-template.md`** erstellt werden.
 
-
-
-\- Iteration-ID
-
-\- Ziel der Iteration
-
+Sie muss zwingend enthalten:
+\- Iteration-ID und Ziel
 \- wichtigste Nutzerprompts (in vollständiger Länge, ungekürzt)
-
 \- kurze Zusammenfassung relevanter KI-Antworten
-
 \- Hinweise auf Korrekturprompts (in vollständiger Länge, ungekürzt)
 
 
