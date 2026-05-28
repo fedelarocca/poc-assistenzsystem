@@ -7,8 +7,8 @@ export default function CasesPage() {
   const { cases, activeCaseId, isLoaded, addCase, selectCase, deleteCase } = useCases();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [pendingDeleteCaseId, setPendingDeleteCaseId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const lastDeleteRef = useRef<number>(0);
 
   // Avoid hydration mismatch by waiting for local storage to load
   if (!isLoaded) {
@@ -30,20 +30,23 @@ export default function CasesPage() {
     setIsCreating(false);
   };
 
-  const handleDelete = (e: React.MouseEvent, id: string) => {
+  const handleDeleteClick = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
-    e.stopPropagation(); // Prevent selecting the case when clicking delete
+    e.stopPropagation();
+    setPendingDeleteCaseId(id);
+  };
 
-    // Prevent rapid multiple clicks from triggering Chrome's dialog spam protection
-    const now = Date.now();
-    if (now - lastDeleteRef.current < 500) {
-      return;
-    }
-    lastDeleteRef.current = now;
+  const handleConfirmDelete = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    deleteCase(id);
+    setPendingDeleteCaseId(null);
+  };
 
-    if (window.confirm("Möchten Sie diesen Analysefall wirklich löschen?")) {
-      deleteCase(id);
-    }
+  const handleCancelDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPendingDeleteCaseId(null);
   };
 
   return (
@@ -119,14 +122,57 @@ export default function CasesPage() {
                   Erstellt am: {new Date(c.createdAt).toLocaleString("de-CH")}
                 </div>
               </div>
-              <button 
-                type="button"
-                className="btn-danger" 
-                onClick={(e) => handleDelete(e, c.id)}
-                title="Fall löschen"
-              >
-                Löschen
-              </button>
+              {pendingDeleteCaseId === c.id ? (
+                <div 
+                  className="delete-confirm-box"
+                  style={{ 
+                    display: "flex", 
+                    flexDirection: "column", 
+                    gap: "8px", 
+                    padding: "12px", 
+                    backgroundColor: "rgba(220, 53, 69, 0.05)", 
+                    border: "1px solid #dc3545", 
+                    borderRadius: "6px",
+                    alignSelf: "center",
+                    minWidth: "240px"
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                >
+                  <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "#dc3545" }}>
+                    Diesen Analysefall wirklich löschen?
+                  </span>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button 
+                      type="button" 
+                      className="btn-danger" 
+                      style={{ padding: "4px 8px", fontSize: "0.8rem", cursor: "pointer" }}
+                      onClick={(e) => handleConfirmDelete(e, c.id)}
+                    >
+                      Ja, löschen
+                    </button>
+                    <button 
+                      type="button" 
+                      className="btn-secondary" 
+                      style={{ padding: "4px 8px", fontSize: "0.8rem", cursor: "pointer" }}
+                      onClick={(e) => handleCancelDelete(e)}
+                    >
+                      Abbrechen
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button 
+                  type="button"
+                  className="btn-danger" 
+                  onClick={(e) => handleDeleteClick(e, c.id)}
+                  title="Fall löschen"
+                >
+                  Löschen
+                </button>
+              )}
             </div>
           ))}
         </div>
