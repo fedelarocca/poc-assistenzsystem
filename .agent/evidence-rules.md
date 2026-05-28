@@ -150,13 +150,11 @@ Die Datei `\[ITERATION-ID]\_prompts.md` soll enthalten:
 
 \- Ziel der Iteration
 
-\- wichtigste Nutzerprompts
+\- wichtigste Nutzerprompts (in vollständiger Länge, ungekürzt)
 
 \- kurze Zusammenfassung relevanter KI-Antworten
 
-\- Hinweise auf Korrekturprompts
-
-\- keine vollständigen langen Chatverläufe, wenn eine sachliche Zusammenfassung genügt
+\- Hinweise auf Korrekturprompts (in vollständiger Länge, ungekürzt)
 
 
 
