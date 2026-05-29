@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Link from "next/link";
 import { useCases } from "../../hooks/useCases";
 
 export default function CasesPage() {
@@ -164,14 +165,25 @@ export default function CasesPage() {
                   </div>
                 </div>
               ) : (
-                <button 
-                  type="button"
-                  className="btn-danger" 
-                  onClick={(e) => handleDeleteClick(e, c.id)}
-                  title="Fall löschen"
-                >
-                  Löschen
-                </button>
+                <div style={{ display: "flex", gap: "10px", alignSelf: "center" }}>
+                  <Link 
+                    href={`/cases/${c.id}`} 
+                    className="btn-secondary" 
+                    style={{ padding: "6px 12px", fontSize: "0.9rem", cursor: "pointer" }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Öffnen
+                  </Link>
+                  <button 
+                    type="button"
+                    className="btn-danger" 
+                    onClick={(e) => handleDeleteClick(e, c.id)}
+                    title="Fall löschen"
+                    style={{ padding: "6px 12px", fontSize: "0.9rem" }}
+                  >
+                    Löschen
+                  </button>
+                </div>
               )}
             </div>
           ))}
