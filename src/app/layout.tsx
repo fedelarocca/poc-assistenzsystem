@@ -23,10 +23,6 @@ export default function RootLayout({
             <nav className="sidebar-nav">
               <Link href="/" className="nav-link">Startseite</Link>
               <Link href="/cases" className="nav-link">Analysefälle</Link>
-              <Link href="/documents" className="nav-link">Dokumente</Link>
-              <Link href="/prompts" className="nav-link">Prompts</Link>
-              <Link href="/results" className="nav-link">Ergebnisse</Link>
-              <Link href="/saved-results" className="nav-link">Gespeicherte Ergebnisse</Link>
             </nav>
           </aside>
           <main className="main-content">

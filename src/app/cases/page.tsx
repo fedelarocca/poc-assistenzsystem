@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useCases } from "../../hooks/useCases";
 
@@ -24,7 +24,7 @@ export default function CasesPage() {
   const handleAddCase = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
-    
+
     addCase(title.trim(), description.trim());
     setTitle("");
     setDescription("");
@@ -107,12 +107,12 @@ export default function CasesPage() {
       ) : (
         <div className="case-list">
           {cases.map((c) => (
-            <div 
-              key={c.id} 
+            <div
+              key={c.id}
               className={`case-card ${c.id === activeCaseId ? 'active' : ''}`}
               style={{ cursor: "default" }}
             >
-              <div 
+              <div
                 className="case-info"
                 onClick={() => selectCase(c.id)}
                 style={{ cursor: "pointer", flex: 1 }}
@@ -124,15 +124,15 @@ export default function CasesPage() {
                 </div>
               </div>
               {pendingDeleteCaseId === c.id ? (
-                <div 
+                <div
                   className="delete-confirm-box"
-                  style={{ 
-                    display: "flex", 
-                    flexDirection: "column", 
-                    gap: "8px", 
-                    padding: "12px", 
-                    backgroundColor: "rgba(220, 53, 69, 0.05)", 
-                    border: "1px solid #dc3545", 
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                    padding: "12px",
+                    backgroundColor: "rgba(220, 53, 69, 0.05)",
+                    border: "1px solid #dc3545",
                     borderRadius: "6px",
                     alignSelf: "center",
                     minWidth: "240px"
@@ -146,17 +146,17 @@ export default function CasesPage() {
                     Diesen Analysefall wirklich löschen?
                   </span>
                   <div style={{ display: "flex", gap: "8px" }}>
-                    <button 
-                      type="button" 
-                      className="btn-danger" 
+                    <button
+                      type="button"
+                      className="btn-danger"
                       style={{ padding: "4px 8px", fontSize: "0.8rem", cursor: "pointer" }}
                       onClick={(e) => handleConfirmDelete(e, c.id)}
                     >
                       Ja, löschen
                     </button>
-                    <button 
-                      type="button" 
-                      className="btn-secondary" 
+                    <button
+                      type="button"
+                      className="btn-secondary"
                       style={{ padding: "4px 8px", fontSize: "0.8rem", cursor: "pointer" }}
                       onClick={(e) => handleCancelDelete(e)}
                     >
@@ -166,17 +166,17 @@ export default function CasesPage() {
                 </div>
               ) : (
                 <div style={{ display: "flex", gap: "10px", alignSelf: "center" }}>
-                  <Link 
-                    href={`/cases/${c.id}`} 
-                    className="btn-secondary" 
+                  <Link
+                    href={`/cases/${c.id}`}
+                    className="btn-secondary"
                     style={{ padding: "6px 12px", fontSize: "0.9rem", cursor: "pointer" }}
                     onClick={(e) => e.stopPropagation()}
                   >
                     Öffnen
                   </Link>
-                  <button 
+                  <button
                     type="button"
-                    className="btn-danger" 
+                    className="btn-danger"
                     onClick={(e) => handleDeleteClick(e, c.id)}
                     title="Fall löschen"
                     style={{ padding: "6px 12px", fontSize: "0.9rem" }}
