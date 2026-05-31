@@ -5,13 +5,15 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCases } from "../../../hooks/useCases";
 import { useDocuments } from "../../../hooks/useDocuments";
+import { isSupabaseConfigured } from "../../../lib/supabase";
 
 export default function CaseDetailPage() {
   const params = useParams();
   const caseId = params?.caseId as string;
-  const { cases, isLoaded: isCasesLoaded } = useCases();
+  const { cases, isLoaded: isCasesLoaded, error: casesError } = useCases();
   const { 
     isLoaded: isDocsLoaded, 
+    error: docsError,
     addDocument, 
     deleteDocument, 
     getDocumentsByCaseId 
@@ -132,6 +134,33 @@ export default function CaseDetailPage() {
         </Link>
       </div>
 
+      {!isSupabaseConfigured && (
+        <div style={{ 
+          backgroundColor: "#fff3cd", 
+          border: "1px solid #ffe69c", 
+          color: "#664d03", 
+          padding: "15px", 
+          borderRadius: "6px", 
+          marginBottom: "20px",
+          lineHeight: "1.5"
+        }}>
+          <strong>Supabase-Verbindung nicht konfiguriert:</strong> Bitte erstellen Sie eine lokale <code>.env.local</code> Datei basierend auf <code>.env.local.example</code> im Projekt-Stammverzeichnis und tragen Sie Ihre echten Supabase-Zugangsdaten (URL und Anon-Key) ein. Die localStorage-Datenhaltung ist ab dieser Iteration deaktiviert.
+        </div>
+      )}
+
+      {isSupabaseConfigured && (casesError || docsError) && (
+        <div style={{ 
+          backgroundColor: "#f8d7da", 
+          border: "1px solid #f5c2c7", 
+          color: "#842029", 
+          padding: "15px", 
+          borderRadius: "6px", 
+          marginBottom: "20px"
+        }}>
+          <strong>Datenbankfehler:</strong> {casesError || docsError}
+        </div>
+      )}
+
       {/* Case Header & Metadata */}
       <div className="card" style={{ marginBottom: "30px", borderLeft: "4px solid var(--primary-color)" }}>
         <h1 style={{ margin: "0 0 10px 0", fontSize: "2rem" }}>{currentCase.title}</h1>
@@ -157,7 +186,7 @@ export default function CaseDetailPage() {
         <div className="card" style={{ display: "flex", flexDirection: "column", gridColumn: "span 2" }}>
           <div style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "10px", marginBottom: "15px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <h2 style={{ margin: 0 }}>Dokumente</h2>
-            {!isAddingDoc && (
+            {!isAddingDoc && isSupabaseConfigured && (
               <button 
                 type="button" 
                 className="btn-primary" 

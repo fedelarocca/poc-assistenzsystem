@@ -3,9 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useCases } from "../../hooks/useCases";
+import { isSupabaseConfigured } from "../../lib/supabase";
 
 export default function CasesPage() {
-  const { cases, activeCaseId, isLoaded, addCase, selectCase, deleteCase } = useCases();
+  const { cases, activeCaseId, isLoaded, error, addCase, selectCase, deleteCase } = useCases();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [pendingDeleteCaseId, setPendingDeleteCaseId] = useState<string | null>(null);
@@ -54,7 +55,7 @@ export default function CasesPage() {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
         <h1 style={{ margin: 0 }}>Analysefälle</h1>
-        {!isCreating && (
+        {!isCreating && isSupabaseConfigured && (
           <button type="button" className="btn-primary" onClick={() => setIsCreating(true)}>
             Neuen Analysefall erstellen
           </button>
@@ -62,6 +63,33 @@ export default function CasesPage() {
       </div>
 
       <p>Hier verwalten Sie Ihre Analysefälle. Wählen Sie einen Fall aus, um ihn zu bearbeiten.</p>
+
+      {!isSupabaseConfigured && (
+        <div style={{ 
+          backgroundColor: "#fff3cd", 
+          border: "1px solid #ffe69c", 
+          color: "#664d03", 
+          padding: "15px", 
+          borderRadius: "6px", 
+          marginBottom: "20px",
+          lineHeight: "1.5"
+        }}>
+          <strong>Supabase-Verbindung nicht konfiguriert:</strong> Bitte erstellen Sie eine lokale <code>.env.local</code> Datei basierend auf <code>.env.local.example</code> im Projekt-Stammverzeichnis und tragen Sie Ihre echten Supabase-Zugangsdaten (URL und Anon-Key) ein. Die localStorage-Datenhaltung ist ab dieser Iteration deaktiviert.
+        </div>
+      )}
+
+      {isSupabaseConfigured && error && (
+        <div style={{ 
+          backgroundColor: "#f8d7da", 
+          border: "1px solid #f5c2c7", 
+          color: "#842029", 
+          padding: "15px", 
+          borderRadius: "6px", 
+          marginBottom: "20px"
+        }}>
+          <strong>Datenbankfehler:</strong> {error}
+        </div>
+      )}
 
       {isCreating && (
         <div className="card">
