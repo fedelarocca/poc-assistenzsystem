@@ -2,6 +2,17 @@ import { useState, useEffect } from "react";
 import { Document } from "../types/document";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 
+function sanitizeFileName(name: string): string {
+  const ext = name.split('.').pop()?.toLowerCase() || '';
+  const base = name.substring(0, name.lastIndexOf('.')) || name;
+  const safeBase = base
+    .replace(/[^a-zA-Z0-9]/g, '_') // Replace non-alphanumeric characters with underscores
+    .replace(/__+/g, '_')          // Collapse multiple underscores
+    .replace(/^_+|_+$/g, '')      // Trim leading/trailing underscores
+    .toLowerCase();
+  return `${safeBase}.${ext}`;
+}
+
 export function useDocuments() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -50,30 +61,71 @@ export function useDocuments() {
     fetchDocuments();
   }, []);
 
-  const addDocument = async (input: Omit<Document, "id" | "createdAt">): Promise<string | null> => {
+  const addDocument = async (
+    input: Omit<Document, "id" | "createdAt" | "storagePath" | "extractedText">,
+    file: File
+  ): Promise<string | null> => {
     if (!isSupabaseConfigured || !supabase) {
-      console.warn("Supabase is not configured. Cannot add document.");
+      setError("Supabase ist nicht konfiguriert. Dokumente können nicht hinzugefügt werden.");
       return null;
     }
 
+    // 1. File type validation (.pdf, .txt, .docx)
+    const ext = file.name.split('.').pop()?.toLowerCase() || '';
+    const allowedExtensions = ['pdf', 'txt', 'docx'];
+    if (!allowedExtensions.includes(ext)) {
+      setError("Ungültiges Dateiformat. Nur PDF-, TXT- und DOCX-Dateien sind erlaubt.");
+      return null;
+    }
+
+    // 2. File size validation (max 10 MB)
+    const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+    if (file.size > MAX_SIZE) {
+      setError("Datei ist zu gross. Die maximale Dateigrösse beträgt 10 MB.");
+      return null;
+    }
+
+    let storagePath = "";
     try {
       setError(null);
+
+      // Generate a safe unique storage path
+      const safeName = sanitizeFileName(file.name);
+      storagePath = `cases/${input.caseId}/${Date.now()}_${safeName}`;
+
+      // 3. Upload physical file to private Storage Bucket 'tender-documents'
+      const { error: uploadErr } = await supabase.storage
+        .from("tender-documents")
+        .upload(storagePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadErr) {
+        throw new Error(`Fehler beim Datei-Upload in Storage: ${uploadErr.message}`);
+      }
+
+      // 4. Save metadata in the database
       const { data, error: insertErr } = await supabase
         .from("documents")
         .insert({
           case_id: input.caseId,
           title: input.title,
           description: input.description || null,
-          file_name: input.fileName,
-          file_type: input.fileType || null,
-          file_size: input.fileSize,
-          storage_path: input.storagePath || null,
-          extracted_text: input.extractedText || null,
+          file_name: file.name,
+          file_type: file.type || ext,
+          file_size: file.size,
+          storage_path: storagePath,
+          extracted_text: null, // Keep null for I-06
         })
         .select()
         .single();
 
-      if (insertErr) throw insertErr;
+      if (insertErr) {
+        // Rollback: delete the uploaded file from storage if DB insert fails
+        await supabase.storage.from("tender-documents").remove([storagePath]);
+        throw insertErr;
+      }
 
       if (data) {
         const newDoc: Document = {
@@ -86,27 +138,46 @@ export function useDocuments() {
           fileSize: Number(data.file_size),
           createdAt: data.created_at,
           storagePath: data.storage_path || undefined,
-          extractedText: data.extracted_text || undefined,
+          extractedText: undefined,
         };
         setDocuments((prev) => [...prev, newDoc]);
         return newDoc.id;
       }
       return null;
     } catch (err: any) {
-      console.error("Error adding document to Supabase:", err);
+      console.error("Error adding document:", err);
       setError(err.message || "Fehler beim Hinzufügen des Dokuments.");
       return null;
     }
   };
 
-  const deleteDocument = async (documentId: string) => {
+  const deleteDocument = async (documentId: string): Promise<boolean> => {
     if (!isSupabaseConfigured || !supabase) {
-      console.warn("Supabase is not configured. Cannot delete document.");
-      return;
+      setError("Supabase ist nicht konfiguriert. Dokumente können nicht gelöscht werden.");
+      return false;
+    }
+
+    const docToDelete = documents.find((d) => d.id === documentId);
+    if (!docToDelete) {
+      setError("Das zu löschende Dokument wurde nicht gefunden.");
+      return false;
     }
 
     try {
       setError(null);
+
+      // 1. Delete physical file from Supabase Storage first
+      if (docToDelete.storagePath) {
+        const { error: storageErr } = await supabase.storage
+          .from("tender-documents")
+          .remove([docToDelete.storagePath]);
+
+        if (storageErr) {
+          throw new Error(`Fehler beim Löschen aus dem Storage: ${storageErr.message}`);
+        }
+      }
+
+      // 2. Delete database entry after successful storage deletion
       const { error: deleteErr } = await supabase
         .from("documents")
         .delete()
@@ -115,9 +186,11 @@ export function useDocuments() {
       if (deleteErr) throw deleteErr;
 
       setDocuments((prev) => prev.filter((d) => d.id !== documentId));
+      return true;
     } catch (err: any) {
-      console.error("Error deleting document from Supabase:", err);
+      console.error("Error deleting document:", err);
       setError(err.message || "Fehler beim Löschen des Dokuments.");
+      return false;
     }
   };
 

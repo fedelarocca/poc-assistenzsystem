@@ -24,6 +24,7 @@ export default function CaseDetailPage() {
   const [docDescription, setDocDescription] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [pendingDeleteDocId, setPendingDeleteDocId] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -68,34 +69,36 @@ export default function CaseDetailPage() {
     }
   };
 
-  const handleAddDocument = (e: React.FormEvent) => {
+  const handleAddDocument = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile) return;
 
-    const fileName = selectedFile.name;
-    const fileType = selectedFile.type || "unknown";
-    const fileSize = selectedFile.size;
+    setIsUploading(true);
 
     // Use filename as fallback title if not entered
-    const title = docTitle.trim() || fileName;
+    const title = docTitle.trim() || selectedFile.name;
 
-    addDocument({
+    const docId = await addDocument({
       caseId,
       title,
       description: docDescription.trim() || undefined,
-      fileName,
-      fileType,
-      fileSize,
-    });
+      fileName: selectedFile.name,
+      fileType: selectedFile.type,
+      fileSize: selectedFile.size,
+    }, selectedFile);
 
-    // Reset Form completely
-    setDocTitle("");
-    setDocDescription("");
-    setSelectedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+    setIsUploading(false);
+
+    if (docId) {
+      // Reset Form completely upon success
+      setDocTitle("");
+      setDocDescription("");
+      setSelectedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      setIsAddingDoc(false);
     }
-    setIsAddingDoc(false);
   };
 
   const handleDeleteClick = (e: React.MouseEvent, id: string) => {
@@ -104,11 +107,13 @@ export default function CaseDetailPage() {
     setPendingDeleteDocId(id);
   };
 
-  const handleConfirmDelete = (e: React.MouseEvent, id: string) => {
+  const handleConfirmDelete = async (e: React.MouseEvent, id: string) => {
     e.preventDefault();
     e.stopPropagation();
-    deleteDocument(id);
-    setPendingDeleteDocId(null);
+    const success = await deleteDocument(id);
+    if (success) {
+      setPendingDeleteDocId(null);
+    }
   };
 
   const handleCancelDelete = (e: React.MouseEvent) => {
@@ -204,7 +209,7 @@ export default function CaseDetailPage() {
               <h3 style={{ marginTop: 0 }}>Lokales Dokument zuordnen</h3>
               
               <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", backgroundColor: "#eef7ff", padding: "10px", borderRadius: "4px", borderLeft: "4px solid #0a58ca", marginBottom: "15px", lineHeight: "1.4" }}>
-                <strong>Hinweis:</strong> Es wird nur eine Datei lokal ausgewählt und deren Metadaten (Name, Typ, Größe) werden im Browser-Speicher zugeordnet. Der eigentliche Datei-Upload auf den Server sowie die Textextraktion erfolgen in einer späteren Iteration.
+                <strong>Hinweis:</strong> Es wird eine Datei ausgewählt, verschlüsselt in Supabase Storage hochgeladen und deren Metadaten werden persistent mit Ihrem Analysefall verknüpft. Erlaubt sind PDF- und TXT-Dateien bis maximal 10 MB.
               </div>
 
               <form onSubmit={handleAddDocument}>
@@ -216,7 +221,9 @@ export default function CaseDetailPage() {
                     ref={fileInputRef}
                     className="form-control"
                     onChange={handleFileChange}
+                    accept=".pdf,.txt,.docx"
                     required
+                    disabled={isUploading}
                     style={{ backgroundColor: "#fff" }}
                   />
                 </div>
@@ -228,6 +235,7 @@ export default function CaseDetailPage() {
                     className="form-control"
                     value={docTitle}
                     onChange={(e) => setDocTitle(e.target.value)}
+                    disabled={isUploading}
                     placeholder={selectedFile ? selectedFile.name : "z.B. Ausschreibung IT-Services"}
                   />
                 </div>
@@ -238,18 +246,34 @@ export default function CaseDetailPage() {
                     className="form-control"
                     value={docDescription}
                     onChange={(e) => setDocDescription(e.target.value)}
+                    disabled={isUploading}
                     placeholder="z.B. Lastenheft oder Leistungsvereinbarung"
                     rows={2}
                   />
                 </div>
                 <div style={{ display: "flex", gap: "10px" }}>
-                  <button type="submit" className="btn-primary" style={{ padding: "8px 16px", fontSize: "0.9rem" }}>Dokument zuordnen</button>
-                  <button type="button" className="btn-secondary" style={{ padding: "8px 16px", fontSize: "0.9rem" }} onClick={() => {
-                    setIsAddingDoc(false);
-                    setDocTitle("");
-                    setDocDescription("");
-                    setSelectedFile(null);
-                  }}>Abbrechen</button>
+                  <button 
+                    type="submit" 
+                    className="btn-primary" 
+                    style={{ padding: "8px 16px", fontSize: "0.9rem" }}
+                    disabled={isUploading || !selectedFile}
+                  >
+                    {isUploading ? "Wird hochgeladen..." : "Dokument zuordnen"}
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn-secondary" 
+                    style={{ padding: "8px 16px", fontSize: "0.9rem" }} 
+                    disabled={isUploading}
+                    onClick={() => {
+                      setIsAddingDoc(false);
+                      setDocTitle("");
+                      setDocDescription("");
+                      setSelectedFile(null);
+                    }}
+                  >
+                    Abbrechen
+                  </button>
                 </div>
               </form>
             </div>
