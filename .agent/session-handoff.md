@@ -20,7 +20,7 @@ Iteration I-05 wurde erfolgreich und vollumfänglich abgeschlossen. Die Datenhal
   - Erstellung des initialen `useDocuments`-Hooks.
   - Reset des Dateiauswahlformulars nach erfolgreicher Zuweisung.
   - Dokumentation der Evidenzen (`I-04_dokument-metadaten.md`, Prompts und Build-Logs).
-- **Iteration I-06 (I-05):**
+- **Iteration I-05:**
   - Typisierter Supabase Client in `src/lib/supabase.ts`.
   - Migration der Hooks `useCases.ts` und `useDocuments.ts` auf asynchrone Supabase-Datenbankabfragen mit Snake-Case-zu-Camel-Case-Mapping.
   - Dokumentation der Evidenzen (`I-05_supabase-datenhaltung.md`, Prompts, Build- und Git-Logs).
@@ -29,14 +29,14 @@ Iteration I-05 wurde erfolgreich und vollumfänglich abgeschlossen. Die Datenhal
 
 ## Nächste geplante Iteration
 
-### I-06: Storage-Anbindung & Dokument-Textextraktion (Analysebasis)
+### I-06: Supabase Storage und echter Datei-Upload
 
 **Ziel:**
-Herstellung der Analysebasis durch das Speichern der physischen Dateien im Supabase Storage (Bucket) sowie die Textextraktion (z.B. PDF-Inhaltsextraktion) und deren Speicherung im Feld `extracted_text` in der `documents`-Tabelle.
+Anbindung von Supabase Storage und Umsetzung eines echten Datei-Uploads (Dokumenten-Dateien physisch in einen Storage Bucket hochladen) sowie Verknüpfung des Storage-Pfads in der `documents`-Tabelle im Feld `storage_path`.
+*Hinweis:* Textextraktion, OCR und KI-Analyse sind explizit von dieser Iteration ausgeschlossen.
 
 **MVP-Bezug:**
-- **F2 / F3:** Vollständige Verwaltung hochgeladener Dokumente inklusive physischem Storage-Pfad und extrahiertem Inhalt.
-- **F4 (Vorbereitung):** Grundlage für die Analyse von Prompts auf Basis des Dokumententextes.
+- **F2 / F3:** Logische Zuweisung und physisches Speichern von Originaldokumenten.
 
 ---
 
