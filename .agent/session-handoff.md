@@ -2,42 +2,41 @@
 
 ## Aktueller Stand
 
-Iteration I-03 wurde erfolgreich und vollumfänglich abgeschlossen. Das Assistenzsystem besitzt nun eine voll funktionsfähige dynamic Case-Detailseite unter `/cases/[caseId]`, die als zentraler, Client-seitig geladener Arbeitsraum dient. 
+Iteration I-05 wurde erfolgreich und vollumfänglich abgeschlossen. Die Datenhaltung des Assistenzsystems für Cases (Analysefälle) und Dokument-Metadaten wurde vollständig von `localStorage` auf eine persistente Supabase-PostgreSQL-Datenbank migriert.
 
-Der geöffnete Analysefall wird dynamisch über `useParams` aus `next/navigation` clientseitig aus dem localStorage-basierten `useCases`-Hook geladen. Die Seite bietet eine robuste Loading-Kompensation gegen Hydration Mismatches und eine saubere Fehlerbehandlung („Analysefall nicht gefunden.“) für ungültige oder gelöschte IDs. 
-
-Im zentralen Arbeitsraum werden neben den Metadaten (Titel, Beschreibung, Erstellungsdatum `de-CH`, Referenz-ID) auch vier separate leere vorbereitende Bereiche (Dokumente, Analyse/Prompts, Ergebnisse und gespeicherte Ergebnisse) mit klaren, sachlichen Hinweistexten dargestellt, die für die Anbindung in den nächsten Iterationen bereitstehen. Die gesamte App baut fehlerfrei (`npm run build`).
+### Wichtigste Meilensteine:
+1. **Supabase-Kopplung (Datenbank):** `cases` und `documents` sind asynchron über asynchrone Supabase-CRUD-Aktionen in den Hooks `useCases` and `useDocuments` angebunden.
+2. **Sicherheits- & Build-Stabilität (UI-Härtung):** Wenn die echten Supabase-Zugangsdaten (`NEXT_PUBLIC_SUPABASE_URL` und `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`) in `.env.local` fehlen, läuft die App stabil weiter. Die Benutzeroberfläche zeigt in diesem Fall auf der Startseite und Detailseite verständliche, gelbe Hinweismeldungen an und blendet Aktionen wie „Erstellen“ oder „Zuweisen“ kontrolliert aus.
+3. **RLS & UPDATE-Richtlinien:** Die Tabellen sind in Supabase mit RLS geschützt. Die UPDATE-Richtlinie wurde zusätzlich mit `WITH CHECK (true)` gehärtet. Die PoC-Tauglichkeit und mangelnde Produktionsbereitschaft (wegen der anon-Policies) wurden im Iterationsprotokoll klar dokumentiert.
+4. **Validierung:** Der Next.js-Produktions-Build (`npm run build`) kompiliert ohne TypeScript- oder Laufzeitfehler.
+5. **Git-Commit & Push:** Sämtliche Änderungen wurden erfolgreich unter dem Commit-Namen `I-05: migrate cases and documents to Supabase database` committet und auf das GitHub-Remote-Repository gepusht.
 
 ---
 
-## Letzte erledigte Schritte
+## Letzte erledigte Schritte (I-04 & I-05)
 
-- **MVP-Bezug:** Vertiefung der Anforderung **F1** (dedizierter Fall-Arbeitsraum) und Vorbereitung der Anschlüsse für **F2**, **F4**, **F6**, **F7** und **F9**.
-- **Core-Implementierung:**
-  - `src/app/cases/page.tsx` mit neuem „Öffnen“-Link pro Case-Card inklusive Event-Absicherung (`stopPropagation()`).
-  - `src/app/cases/[caseId]/page.tsx` als dynamic route Client Component mit Lade-Zustand, Fehlertoleranz und responsivem Grid-Layout für die vier leeren vorbereitenden Abschnitte.
-- **Validierung:** Erfolgreicher Build mit `npm run build` nach der Umsetzung.
-- **Dokumentationspflege:** Erstellung und Ausfüllung von `I-03_case-detailseite.md` (Iterationsprotokoll), `I-03_prompts.md` (vollständige Prompts) und `I-03_build_log.txt`.
+- **Iteration I-04:**
+  - Konzeption und Implementierung des Dokument-Metadaten-Zuweisung-Workflows.
+  - Erstellung des initialen `useDocuments`-Hooks.
+  - Reset des Dateiauswahlformulars nach erfolgreicher Zuweisung.
+  - Dokumentation der Evidenzen (`I-04_dokument-metadaten.md`, Prompts und Build-Logs).
+- **Iteration I-06 (I-05):**
+  - Typisierter Supabase Client in `src/lib/supabase.ts`.
+  - Migration der Hooks `useCases.ts` und `useDocuments.ts` auf asynchrone Supabase-Datenbankabfragen mit Snake-Case-zu-Camel-Case-Mapping.
+  - Dokumentation der Evidenzen (`I-05_supabase-datenhaltung.md`, Prompts, Build- und Git-Logs).
 
 ---
 
 ## Nächste geplante Iteration
 
-### I-04: Dokument-Metadaten mit Case-Zuordnung (Requirement F2)
+### I-06: Storage-Anbindung & Dokument-Textextraktion (Analysebasis)
 
 **Ziel:**
-Ermöglichen der Verwaltung und Anzeige von Dokumenten-Metadaten (z.B. ID, Dateiname, Hochladedatum, Dateigröße) und deren logische Zuordnung zu einem ausgewählten Analysefall (Case) im `localStorage`.
+Herstellung der Analysebasis durch das Speichern der physischen Dateien im Supabase Storage (Bucket) sowie die Textextraktion (z.B. PDF-Inhaltsextraktion) und deren Speicherung im Feld `extracted_text` in der `documents`-Tabelle.
 
 **MVP-Bezug:**
-- **F2:** Dokumente können hochgeladen und einem Case zugeordnet werden (Metadaten-Ebene).
-- **F3 (vorbereitet):** Dokumente stehen zur Analyse bereit.
-
-**Offene Punkte / Nächste Aufgaben:**
-- Datenstruktur für Dokument-Metadaten definieren (z.B. ID, Dateiname, Dateigröße in Bytes, Upload-Zeitstempel, zugehörige `caseId`).
-- Erstellung eines Custom Hooks `useDocuments` zur persistenten Verwaltung der Dokumenten-Metadaten im `localStorage`.
-- Einbau eines Dateiauswahl-Elements (File Input) auf der Case-Detailseite `/cases/[caseId]` im Dokumenten-Bereich.
-- Tabellarische Listenansicht aller dem aktuellen Case zugeordneten Dokumente mit Löschoption implementieren.
-- Technische Prüfung und Erstellung der Evidence-Dateien für I-04.
+- **F2 / F3:** Vollständige Verwaltung hochgeladener Dokumente inklusive physischem Storage-Pfad und extrahiertem Inhalt.
+- **F4 (Vorbereitung):** Grundlage für die Analyse von Prompts auf Basis des Dokumententextes.
 
 ---
 
