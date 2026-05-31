@@ -209,7 +209,7 @@ export default function CaseDetailPage() {
               <h3 style={{ marginTop: 0 }}>Lokales Dokument zuordnen</h3>
               
               <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", backgroundColor: "#eef7ff", padding: "10px", borderRadius: "4px", borderLeft: "4px solid #0a58ca", marginBottom: "15px", lineHeight: "1.4" }}>
-                <strong>Hinweis:</strong> Es wird eine Datei ausgewählt, verschlüsselt in Supabase Storage hochgeladen und deren Metadaten werden persistent mit Ihrem Analysefall verknüpft. Erlaubt sind PDF- und TXT-Dateien bis maximal 10 MB.
+                <strong>Hinweis:</strong> Es wird eine Datei ausgewählt, in Supabase Storage gespeichert und deren Metadaten werden persistent mit dem Analysefall verknüpft. Erlaubt sind PDF-, TXT- und DOCX-Dateien bis maximal 10 MB.
               </div>
 
               <form onSubmit={handleAddDocument}>
