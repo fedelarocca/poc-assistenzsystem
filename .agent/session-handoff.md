@@ -2,51 +2,56 @@
 
 ## Aktueller Stand
 
-Iteration I-07 wurde erfolgreich und vollumfänglich abgeschlossen. Das Assistenzsystem verfügt nun über eine automatische, serverbasierte Textextraktion aus hochgeladenen textbasierten PDF-, TXT- und DOCX-Dateien. Die extrahierten Textinhalte werden persistent in der PostgreSQL-Datenbank gespeichert und bilden eine überprüfbare Textgrundlage für spätere KI-Analysen.
+Iteration I-08 wurde erfolgreich und vollumfänglich abgeschlossen. Das Assistenzsystem verfügt nun über eine serverbasierte, reaktive KI-gestützte Analyse von hochgeladenen Dokumenten auf Basis des Vercel AI SDK. Das System unterstützt sowohl Google Gemini als auch OpenAI (GPT) als Provider (Auswahl Option A im UI). Die Ergebnisse werden persistent in der neuen Tabelle `analysis_results` gespeichert.
 
 ### Wichtigste Meilensteine:
-1. **Server-seitige Textextraktion (Next.js Route Handler):** Der Handler `/api/documents/[documentId]/extract-text` lädt Binärdaten aus Supabase Storage und extrahiert Text (UTF-8 für `.txt`, `pdf-parse` für textbasierte PDFs, `mammoth` für Word `.docx`).
-2. **Textvalidierung & OCR-Ausschluss:** Der Route Handler validiert, ob Text extrahiert wurde. Ist das Ergebnis leer (z.B. bei gescannten Bildern in PDFs), bricht er ab und gibt eine sachliche Fehlermeldung aus. Scan-PDFs und OCR werden absichtlich nicht unterstützt und als bekannte PoC-Grenze deklariert.
-3. **Datenbank-Persistierung:** Der extrahierte Text wird persistent im Spaltenfeld `extracted_text` der bestehenden Tabelle `documents` in Supabase gespeichert.
-4. **Hook-Erweiterung:** Der Hook `useDocuments` wurde um die fetch-Methode `extractDocumentText(documentId)` erweitert, um die Extraktion asynchron zu triggern und den lokalen React State reaktiv zu aktualisieren.
-5. **UI-loader & Status-Anzeigen:**
-   - Visualisierung durch Status-Badges: „Textbasis vorhanden“ (grün) oder „Keine Textbasis“ (grau).
-   - Während der Extraktion wird der Button auf „Wird extrahiert...“ geändert und deaktiviert.
-6. **Vorschau-Modal:** Klickt der Nutzer auf „Vorschau anzeigen“, öffnet sich ein einfaches Modal-Fenster, das die ersten 800 Zeichen des Textes als kurze Vorschau darstellt und bei Überschreitung ein Suffix `[...] (Vorschau auf 800 Zeichen begrenzt)` anhängt.
-7. **Validierung:** Der Next.js-Produktions-Build (`npm run build`) kompiliert ohne TypeScript- oder Laufzeitfehler.
+1. **npm-Pakete integriert**: Die Pakete `ai`, `@ai-sdk/google` und `@ai-sdk/openai` wurden erfolgreich installiert und konfiguriert.
+2. **Datenbank-Tabelle & RLS-Policies**: Die Tabelle `analysis_results` wurde per SQL-Migration angelegt. RLS ist aktiv, und anonyme SELECT/INSERT/DELETE-Policies sind für den privaten PoC eingerichtet (unter sicherem Ausschluss von UPDATE-Rechten).
+3. **serverseitige KI-Route (Next.js Route Handler)**: Unter `/api/analysis/run` wurde der Handler implementiert. Er validiert Parameter, überprüft Case-Dokument-Zuordnungen, kürzt Texte zur Kosten- und Kontextkontrolle auf maximal **20'000 Zeichen**, konfiguriert System-Prompts zur Halluzinationsvermeidung und führt die Textgenerierung aus.
+4. **Custom Hook (`useAnalysis.ts`)**: Verfasser der reaktiven Koppelung mit Supabase zur asynchronen Ausführung und Speicherung der Ergebnisse.
+5. **UI-Workspace & Historie**:
+   - Dokumentenauswahl (nur Dokumente mit vorhandener Textbasis).
+   - Prompt-Eingabe mit veränderbarem strategischen Standardprompt.
+   - Provider-/Modellauswahl (Startmodelle: `gemini-3.1-flash-lite` für Google und `gpt-4o-mini` für OpenAI).
+   - Lade-Indikator („Analyse wird ausgeführt...“).
+   - Highlighted Ergebnisanzeige sowie collapsible Ergebnishistorie im Bereich „Ergebnisse“.
+6. **Erfolgreicher End-to-End-Test**: 
+   - Im manuellen Test wurde Gemini erfolgreich über das Vercel AI SDK angebunden. Als Testgrundlage wurde eine harmlose PDF-Datei mit dem Inhalt „Test Datei Upload“ verwendet. Die KI-Analyse erkannte korrekt, dass keine fachlich verwertbaren Ausschreibungsinformationen vorliegen, und gab statt erfundener Inhalte eine sachliche Empfehlung zur Dokumentenprüfung aus.
+   - Der Test wurde mit Google Gemini durchgeführt. Die OpenAI-Anbindung wurde technisch vollständig vorbereitet (und kann bei Vorhandensein eines lokalen OpenAI API Keys sofort aktiv getestet werden).
+   - Es wurden keine echten Ausschreibungsunterlagen und keine vertraulichen Inhalte verwendet.
+   - Der Test belegt die funktionierende technische End-to-End-Kette: Textgrundlage &rarr; Prompt &rarr; KI-Aufruf &rarr; Ergebnisanzeige &rarr; Speicherung in `analysis_results`.
+7. **Validierung**: Der Next.js-Produktionsbuild (`npm run build`) läuft fehlerfrei durch.
 
 ---
 
-## Letzte erledigte Schritte (I-06 & I-07)
+## Letzte erledigte Schritte (I-07 & I-08)
 
-- **Iteration I-06:**
-  - Konzeption und Implementierung des echten Datei-Uploads in den privaten Storage Bucket `tender-documents`.
-  - Client-seitige Format- und Dateigrösseprüfung vor dem Upload.
-  - Synchronisierte Löschlogik (zuerst Storage, dann DB) im `useDocuments.ts` Hook.
-  - Ladeindikatoren und Schaltflächensperre in `/cases/[caseId]/page.tsx`.
-  - Dokumentation der Evidenzen (`I-06_supabase-storage-upload.md`, Prompts und Build-Logs).
-- **Iteration I-07:**
-  - Installation von `pdf-parse` und `mammoth`.
-  - Erstellung des Next.js Route Handlers zur serverseitigen Textextraktion.
+- **Iteration I-07 (Textextraktion)**:
+  - API Route Handler zur serverseitigen Textextraktion aus `.txt`, textbasierten `.pdf` und `.docx` Dateien.
+  - Integration von Mammoth (DOCX) und pdf-parse (PDF).
   - Behebung des PDF-Runtime-Problems (`DOMMatrix is not defined`) durch den Import von `CanvasFactory` aus `pdf-parse/worker` und `serverExternalPackages` in `next.config.ts`.
-  - Integration der fetch-Funktion `extractDocumentText` im Custom Hook.
-  - UI-Statusbadges, Ladeindikatoren und 800-Zeichen-Vorschau-Modal in `/cases/[caseId]/page.tsx`.
-  - Dokumentation der Evidenzen (`I-07_textextraktion.md`, Prompts und Build-Logs).
+  - UI-Statusbadges, Ladeindikatoren und 800-Zeichen-Vorschau-Modal.
+  - Dokumentation der Evidenzen.
+- **Iteration I-08 (KI-Analyse)**:
+  - Installation der KI-Abhängigkeiten und Ergänzung von `.env.local.example`.
+  - SQL-Migration für `analysis_results` (Tabelle, RLS und Policies).
+  - Implementierung des Route Handlers `/api/analysis/run` und des Client-Hooks `useAnalysis.ts`.
+  - UI-Workspace mit Promptformular, Provider-/Modellauswahl (Option A), load-Zuständen und collapsible Historie.
+  - Erfolgreiche Durchführung des manuellen E2E-Tests mit Google Gemini (harmloses Test-PDF).
+  - Erstellung der Evidence-Dokumente (`I-08_ki-analyse.md`, Prompts und Build-Logs).
 
 ---
 
 ## Nächste geplante Iteration
 
-### I-08: Prompt-Verwaltung & KI-Analyse (Vercel AI SDK / OpenAI)
+### I-09: Ergebnisse speichern & filtern (SavedResults)
 
 **Ziel:**
-Anbindung des Vercel AI SDK und OpenAI (oder einem anderen initialen LLM), um Prompts auf Basis der extrahierten Textgrundlage eines ausgewählten Dokuments auszuführen. Die erzeugten Ergebnisse werden einem Analysefall und dem Dokument zugeordnet.
+Umsetzung einer dedizierten Speicher- und Filterfunktion für erzeugte Analyseergebnisse (F9). Der Nutzer soll ausgewählte Analyseberichte dauerhaft als „gespeichert“ markieren, mit eigenen Notizen versehen und in einer strukturierten Exportansicht (z.B. Druck-optimiert oder einfacher Textabzug) exportieren können.
 
 **MVP-Bezug:**
-- **F4:** Ein Prompt kann auf Basis eines ausgewählten Dokuments ausgeführt werden.
-- **F5:** Prompts können angepasst und erneut ausgeführt werden.
-- **F6:** Verwendete Prompts und erzeugte Ergebnisse bleiben einem Analysefall zuordenbar.
-- **F8:** Ergebnisse können entlang relevanter Analyseperspektiven ausgewertet werden.
+- **F8 (Vertiefung)**: Strukturierte Darstellung und Auswertung von Ergebnissen.
+- **F9 (vollständige Umsetzung)**: Ausgewählte Ergebnisse können gespeichert und fallbezogen wieder aufgerufen werden.
 
 ---
 
