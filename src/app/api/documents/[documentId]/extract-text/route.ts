@@ -79,15 +79,19 @@ export async function POST(
       extractedText = buffer.toString("utf8");
     } else if (ext === "pdf") {
       try {
-        // Dynamic import / require to prevent bundle issues at build time
         // @ts-ignore
-        const pdfParse = require("pdf-parse");
-        const pdfData = await pdfParse(buffer);
+        const { CanvasFactory } = require("pdf-parse/worker");
+        // @ts-ignore
+        const { PDFParse } = require("pdf-parse");
+
+        const parser = new PDFParse({ data: buffer, CanvasFactory });
+        await parser.load();
+        const pdfData = await parser.getText();
         extractedText = pdfData.text || "";
       } catch (err: any) {
         console.error("PDF-Parse error:", err);
         return NextResponse.json(
-          { error: `Fehler beim PDF-Auslesen. Möglicherweise ist das PDF-Format ungültig oder beschädigt: ${err.message}` },
+          { error: "Die PDF-Textextraktion konnte technisch nicht durchgeführt werden. Bitte prüfen Sie, ob es sich um ein textbasiertes PDF handelt. Scan-PDFs/OCR werden in diesem PoC nicht unterstützt." },
           { status: 500 }
         );
       }

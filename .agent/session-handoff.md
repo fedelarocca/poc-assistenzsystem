@@ -28,6 +28,7 @@ Iteration I-07 wurde erfolgreich und vollumfänglich abgeschlossen. Das Assisten
 - **Iteration I-07:**
   - Installation von `pdf-parse` und `mammoth`.
   - Erstellung des Next.js Route Handlers zur serverseitigen Textextraktion.
+  - Behebung des PDF-Runtime-Problems (`DOMMatrix is not defined`) durch den Import von `CanvasFactory` aus `pdf-parse/worker` und `serverExternalPackages` in `next.config.ts`.
   - Integration der fetch-Funktion `extractDocumentText` im Custom Hook.
   - UI-Statusbadges, Ladeindikatoren und 800-Zeichen-Vorschau-Modal in `/cases/[caseId]/page.tsx`.
   - Dokumentation der Evidenzen (`I-07_textextraktion.md`, Prompts und Build-Logs).
