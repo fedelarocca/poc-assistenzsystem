@@ -7,6 +7,8 @@ import { useCases } from "../../../hooks/useCases";
 import { useDocuments } from "../../../hooks/useDocuments";
 import { isSupabaseConfigured } from "../../../lib/supabase";
 
+import { useAnalysis } from "../../../hooks/useAnalysis";
+
 export default function CaseDetailPage() {
   const params = useParams();
   const caseId = params?.caseId as string;
@@ -20,6 +22,13 @@ export default function CaseDetailPage() {
     extractDocumentText
   } = useDocuments();
 
+  const {
+    analysisResults,
+    isLoaded: isAnalysisLoaded,
+    error: analysisError,
+    runAnalysis
+  } = useAnalysis(caseId);
+
   const [isAddingDoc, setIsAddingDoc] = useState(false);
   const [docTitle, setDocTitle] = useState("");
   const [docDescription, setDocDescription] = useState("");
@@ -28,11 +37,22 @@ export default function CaseDetailPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [isExtractingMap, setIsExtractingMap] = useState<{ [docId: string]: boolean }>({});
   const [previewDoc, setPreviewDoc] = useState<any | null>(null);
+
+  // Analysis State
+  const [selectedDocId, setSelectedDocId] = useState("");
+  const [provider, setProvider] = useState("google");
+  const [model, setModel] = useState("gemini-3.1-flash-lite");
+  const [promptText, setPromptText] = useState(
+    "Analysiere die folgende Textgrundlage eines Ausschreibungsdokuments aus Sicht des strategischen Einkaufs. Identifiziere die wichtigsten potenziellen Risiken, Unklarheiten und prüfungsrelevanten Punkte. Strukturiere die Antwort in kurze Abschnitte mit Überschriften und Stichpunkten. Trenne klar zwischen Beobachtung, möglicher Relevanz und empfohlener Prüfung."
+  );
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [activeAnalysisResult, setActiveAnalysisResult] = useState<string | null>(null);
+  const [expandedResultId, setExpandedResultId] = useState<string | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Avoid hydration mismatch by waiting for local storage to load
-  if (!isCasesLoaded || !isDocsLoaded) {
+  if (!isCasesLoaded || !isDocsLoaded || !isAnalysisLoaded) {
     return (
       <div style={{ padding: "20px" }}>
         <h1>Analysefall Details</h1>
@@ -63,6 +83,7 @@ export default function CaseDetailPage() {
 
   // Get documents for this specific case
   const caseDocs = getDocumentsByCaseId(caseId);
+  const docsWithText = caseDocs.filter((d) => d.extractedText && d.extractedText.trim());
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -133,6 +154,28 @@ export default function CaseDetailPage() {
     setIsExtractingMap((prev) => ({ ...prev, [id]: false }));
   };
 
+  const handleExecuteAnalysis = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedDocId || !promptText.trim()) return;
+
+    setIsAnalyzing(true);
+    setActiveAnalysisResult(null);
+
+    const res = await runAnalysis(
+      caseId,
+      selectedDocId,
+      promptText.trim(),
+      provider,
+      model
+    );
+
+    setIsAnalyzing(false);
+    if (res) {
+      setActiveAnalysisResult(res.resultText);
+      setExpandedResultId(res.id);
+    }
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
@@ -164,7 +207,7 @@ export default function CaseDetailPage() {
         </div>
       )}
 
-      {isSupabaseConfigured && (casesError || docsError) && (
+      {isSupabaseConfigured && (casesError || docsError || analysisError) && (
         <div style={{ 
           backgroundColor: "#f8d7da", 
           border: "1px solid #f5c2c7", 
@@ -173,7 +216,7 @@ export default function CaseDetailPage() {
           borderRadius: "6px", 
           marginBottom: "20px"
         }}>
-          <strong>Datenbankfehler:</strong> {casesError || docsError}
+          <strong>Fehler:</strong> {casesError || docsError || analysisError}
         </div>
       )}
 
@@ -434,26 +477,221 @@ export default function CaseDetailPage() {
           )}
         </div>
 
-        {/* Section 2: Prompts / Execution - Placeholder */}
+        {/* Section 2: Prompts / Execution */}
         <div className="card" style={{ display: "flex", flexDirection: "column" }}>
-          <h2 style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h2 style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", margin: "0 0 15px 0" }}>
             Analyse / Prompts
-            <span style={{ fontSize: "0.75rem", backgroundColor: "var(--bg-color)", padding: "4px 8px", borderRadius: "12px", color: "var(--text-muted)", fontWeight: "normal" }}>Bereit für I-07</span>
+            <span style={{ fontSize: "0.75rem", backgroundColor: "var(--bg-color)", padding: "4px 8px", borderRadius: "12px", color: "var(--text-muted)", fontWeight: "normal" }}>Ausschreibungsanalyse</span>
           </h2>
-          <div className="empty-state" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", margin: "10px 0" }}>
-            Noch keine Analyse ausgeführt.
-          </div>
+          
+          {docsWithText.length === 0 ? (
+            <div className="empty-state" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", textAlign: "center", minHeight: "150px" }}>
+              <div>
+                <p style={{ margin: "0 0 10px 0", fontWeight: "600", color: "var(--text-muted)" }}>Keine Textgrundlage vorhanden.</p>
+                <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--text-muted)", lineHeight: "1.4" }}>
+                  Für diesen Analysefall ist noch keine Textgrundlage vorhanden. Extrahieren Sie zuerst den Text eines zugeordneten Dokuments.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleExecuteAnalysis} style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+              <div className="form-group">
+                <label className="form-label" htmlFor="analysisDocSelect" style={{ fontWeight: "600" }}>Dokument auswählen *</label>
+                <select
+                  id="analysisDocSelect"
+                  className="form-control"
+                  value={selectedDocId}
+                  onChange={(e) => setSelectedDocId(e.target.value)}
+                  required
+                  disabled={isAnalyzing}
+                  style={{ backgroundColor: "#fff" }}
+                >
+                  <option value="">-- Dokument auswählen --</option>
+                  {docsWithText.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.title} ({d.fileName})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="providerSelect" style={{ fontWeight: "600" }}>KI-Provider *</label>
+                  <select
+                    id="providerSelect"
+                    className="form-control"
+                    value={provider}
+                    onChange={(e) => {
+                      const newProvider = e.target.value;
+                      setProvider(newProvider);
+                      // Auto-update model to start model of new provider
+                      if (newProvider === "google") {
+                        setModel("gemini-3.1-flash-lite");
+                      } else {
+                        setModel("gpt-4o-mini");
+                      }
+                    }}
+                    required
+                    disabled={isAnalyzing}
+                    style={{ backgroundColor: "#fff" }}
+                  >
+                    <option value="google">Google Gemini</option>
+                    <option value="openai">OpenAI</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="modelSelect" style={{ fontWeight: "600" }}>Modell *</label>
+                  <select
+                    id="modelSelect"
+                    className="form-control"
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                    required
+                    disabled={isAnalyzing}
+                    style={{ backgroundColor: "#fff" }}
+                  >
+                    {provider === "google" ? (
+                      <>
+                        <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite (Standard)</option>
+                        <option value="gemini-1.5-flash">gemini-1.5-flash (Kompatibel)</option>
+                        <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                        <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                        <option value="gemini-3.1-flash">gemini-3.1-flash</option>
+                        <option value="gemini-3.1-pro">gemini-3.1-pro</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="gpt-4o-mini">gpt-4o-mini (Standard)</option>
+                        <option value="gpt-4o">gpt-4o</option>
+                        <option value="o3-mini">o3-mini</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="promptTextarea" style={{ fontWeight: "600" }}>Analyseprompt *</label>
+                <textarea
+                  id="promptTextarea"
+                  className="form-control"
+                  value={promptText}
+                  onChange={(e) => setPromptText(e.target.value)}
+                  required
+                  disabled={isAnalyzing}
+                  rows={4}
+                  style={{ resize: "vertical", fontSize: "0.9rem", lineHeight: "1.4" }}
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={isAnalyzing || !selectedDocId}
+                style={{ width: "100%", padding: "10px", fontWeight: "600" }}
+              >
+                {isAnalyzing ? "Analyse wird ausgeführt..." : "Analyse ausführen"}
+              </button>
+            </form>
+          )}
+
+          {/* Active Generation Result Preview */}
+          {activeAnalysisResult && (
+            <div className="card" style={{ marginTop: "20px", backgroundColor: "#f8f9fa", border: "1px solid var(--border-color)", borderLeft: "4px solid #0f5132" }}>
+              <h4 style={{ margin: "0 0 10px 0", color: "#0f5132", fontSize: "0.95rem", fontWeight: "600" }}>Aktuelles Analyseergebnis</h4>
+              <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "10px" }}>
+                Textgrundlage wurde für die Analyse auf 20'000 Zeichen begrenzt.
+              </div>
+              <div style={{ fontSize: "0.9rem", lineHeight: "1.5", whiteSpace: "pre-wrap", overflowY: "auto", maxHeight: "300px", padding: "10px", backgroundColor: "#fff", border: "1px solid #dee2e6", borderRadius: "4px" }}>
+                {activeAnalysisResult}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Section 3: Active Results - Placeholder */}
+        {/* Section 3: Ergebnisse (Analyse-Historie) */}
         <div className="card" style={{ display: "flex", flexDirection: "column" }}>
-          <h2 style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h2 style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", margin: "0 0 15px 0" }}>
             Ergebnisse
-            <span style={{ fontSize: "0.75rem", backgroundColor: "var(--bg-color)", padding: "4px 8px", borderRadius: "12px", color: "var(--text-muted)", fontWeight: "normal" }}>Bereit für I-08</span>
+            <span style={{ fontSize: "0.75rem", backgroundColor: "var(--bg-color)", padding: "4px 8px", borderRadius: "12px", color: "var(--text-muted)", fontWeight: "normal" }}>Historie ({analysisResults.length})</span>
           </h2>
-          <div className="empty-state" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", margin: "10px 0" }}>
-            Noch keine Ergebnisse vorhanden.
-          </div>
+          
+          {analysisResults.length === 0 ? (
+            <div className="empty-state" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minHeight: "150px" }}>
+              Noch keine Analyseergebnisse vorhanden.
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "15px", overflowY: "auto", maxHeight: "450px" }}>
+              {analysisResults.map((res) => {
+                const doc = caseDocs.find((d) => d.id === res.documentId);
+                const isExpanded = expandedResultId === res.id;
+                
+                return (
+                  <div key={res.id} style={{ border: "1px solid var(--border-color)", borderRadius: "6px", overflow: "hidden" }}>
+                    {/* Collapsible Header */}
+                    <div 
+                      onClick={() => setExpandedResultId(isExpanded ? null : res.id)}
+                      style={{ 
+                        padding: "10px 15px", 
+                        backgroundColor: "var(--bg-color)", 
+                        cursor: "pointer", 
+                        display: "flex", 
+                        justifyContent: "space-between", 
+                        alignItems: "center",
+                        borderBottom: isExpanded ? "1px solid var(--border-color)" : "none"
+                      }}
+                    >
+                      <div style={{ display: "flex", flexDirection: "column", gap: "2px", textAlign: "left" }}>
+                        <span style={{ fontWeight: "600", fontSize: "0.9rem" }}>
+                          {doc ? doc.title : "Unbekanntes Dokument"}
+                        </span>
+                        <div style={{ display: "flex", gap: "8px", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                          <span style={{ backgroundColor: "#e2e3e5", padding: "2px 6px", borderRadius: "4px", fontWeight: "600", color: "#41464b" }}>
+                            {res.provider}: {res.model}
+                          </span>
+                          <span>{new Date(res.createdAt).toLocaleString("de-CH")}</span>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: "0.8rem", color: "var(--primary-color)", fontWeight: "500" }}>
+                        {isExpanded ? "Ausblenden" : "Anzeigen"}
+                      </span>
+                    </div>
+
+                    {/* Result Content */}
+                    {isExpanded && (
+                      <div style={{ padding: "15px", backgroundColor: "#fff", textAlign: "left" }}>
+                        {/* Prompt preview */}
+                        <div style={{ 
+                          fontSize: "0.8rem", 
+                          color: "var(--text-muted)", 
+                          backgroundColor: "#f8f9fa", 
+                          padding: "8px 12px", 
+                          borderRadius: "4px", 
+                          borderLeft: "3px solid #dee2e6",
+                          marginBottom: "12px",
+                          fontStyle: "italic" 
+                        }}>
+                          <strong>Verwendeter Prompt:</strong> {res.prompt}
+                        </div>
+
+                        {/* KI Result Text */}
+                        <div style={{ 
+                          fontSize: "0.9rem", 
+                          lineHeight: "1.6", 
+                          whiteSpace: "pre-wrap", 
+                          color: "var(--text-color)" 
+                        }}>
+                          {res.resultText}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Section 4: Saved Results - Placeholder */}
