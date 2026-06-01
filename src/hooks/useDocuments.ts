@@ -198,6 +198,41 @@ export function useDocuments() {
     return documents.filter((d) => d.caseId === caseId);
   };
 
+  const extractDocumentText = async (documentId: string): Promise<boolean> => {
+    if (!isSupabaseConfigured || !supabase) {
+      setError("Supabase ist nicht konfiguriert. Textextraktion nicht möglich.");
+      return false;
+    }
+
+    try {
+      setError(null);
+      const res = await fetch(`/api/documents/${documentId}/extract-text`, {
+        method: "POST",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Fehler bei der Textextraktion.");
+      }
+
+      // Update the local state with the extracted text
+      setDocuments((prev) =>
+        prev.map((d) =>
+          d.id === documentId
+            ? { ...d, extractedText: data.extractedText }
+            : d
+        )
+      );
+
+      return true;
+    } catch (err: any) {
+      console.error("Error in extractDocumentText hook:", err);
+      setError(err.message || "Fehler bei der Textextraktion.");
+      return false;
+    }
+  };
+
   return {
     documents,
     isLoaded,
@@ -205,5 +240,6 @@ export function useDocuments() {
     addDocument,
     deleteDocument,
     getDocumentsByCaseId,
+    extractDocumentText,
   };
 }

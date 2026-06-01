@@ -16,7 +16,8 @@ export default function CaseDetailPage() {
     error: docsError,
     addDocument, 
     deleteDocument, 
-    getDocumentsByCaseId 
+    getDocumentsByCaseId,
+    extractDocumentText
   } = useDocuments();
 
   const [isAddingDoc, setIsAddingDoc] = useState(false);
@@ -25,6 +26,8 @@ export default function CaseDetailPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [pendingDeleteDocId, setPendingDeleteDocId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isExtractingMap, setIsExtractingMap] = useState<{ [docId: string]: boolean }>({});
+  const [previewDoc, setPreviewDoc] = useState<any | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -120,6 +123,14 @@ export default function CaseDetailPage() {
     e.preventDefault();
     e.stopPropagation();
     setPendingDeleteDocId(null);
+  };
+
+  const handleExtractText = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsExtractingMap((prev) => ({ ...prev, [id]: true }));
+    await extractDocumentText(id);
+    setIsExtractingMap((prev) => ({ ...prev, [id]: false }));
   };
 
   const formatFileSize = (bytes: number) => {
@@ -294,6 +305,7 @@ export default function CaseDetailPage() {
                     <th style={{ padding: "10px 5px" }}>Grösse</th>
                     <th style={{ padding: "10px 5px" }}>Typ</th>
                     <th style={{ padding: "10px 5px" }}>Zugeordnet am</th>
+                    <th style={{ padding: "10px 5px" }}>Textbasis</th>
                     <th style={{ padding: "10px 5px", textAlign: "right" }}>Aktion</th>
                   </tr>
                 </thead>
@@ -308,59 +320,111 @@ export default function CaseDetailPage() {
                       <td style={{ padding: "12px 5px" }}>{formatFileSize(doc.fileSize)}</td>
                       <td style={{ padding: "12px 5px", color: "var(--text-muted)", fontSize: "0.8rem" }}>{doc.fileType}</td>
                       <td style={{ padding: "12px 5px" }}>{new Date(doc.createdAt).toLocaleString("de-CH")}</td>
-                      <td style={{ padding: "12px 5px", textAlign: "right" }}>
-                        {pendingDeleteDocId === doc.id ? (
-                          <div 
-                            className="delete-confirm-box"
-                            style={{ 
-                              display: "inline-flex", 
-                              flexDirection: "column", 
-                              gap: "4px", 
-                              padding: "8px", 
-                              backgroundColor: "rgba(220, 53, 69, 0.05)", 
-                              border: "1px solid #dc3545", 
-                              borderRadius: "4px",
-                              textAlign: "left",
-                              maxWidth: "180px"
-                            }}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                            }}
-                          >
-                            <span style={{ fontSize: "0.75rem", fontWeight: "600", color: "#dc3545", whiteSpace: "normal" }}>
-                              Diesen Dokumenteintrag wirklich löschen?
-                            </span>
-                            <div style={{ display: "flex", gap: "4px", marginTop: "2px" }}>
-                              <button 
-                                type="button" 
-                                className="btn-danger" 
-                                style={{ padding: "2px 6px", fontSize: "0.75rem", cursor: "pointer" }}
-                                onClick={(e) => handleConfirmDelete(e, doc.id)}
-                              >
-                                Ja, löschen
-                              </button>
-                              <button 
-                                type="button" 
-                                className="btn-secondary" 
-                                style={{ padding: "2px 6px", fontSize: "0.75rem", cursor: "pointer" }}
-                                onClick={(e) => handleCancelDelete(e)}
-                              >
-                                Abbrechen
-                              </button>
-                            </div>
-                          </div>
+                      <td style={{ padding: "12px 5px" }}>
+                        {doc.extractedText ? (
+                          <span style={{ 
+                            fontSize: "0.75rem", 
+                            backgroundColor: "#d1e7dd", 
+                            color: "#0f5132", 
+                            padding: "4px 8px", 
+                            borderRadius: "12px", 
+                            fontWeight: "600",
+                            whiteSpace: "nowrap"
+                          }}>
+                            Textbasis vorhanden
+                          </span>
                         ) : (
-                          <button 
-                            type="button"
-                            className="btn-danger" 
-                            style={{ padding: "4px 8px", fontSize: "0.75rem" }}
-                            onClick={(e) => handleDeleteClick(e, doc.id)}
-                            title="Dokumenteintrag löschen"
-                          >
-                            Löschen
-                          </button>
+                          <span style={{ 
+                            fontSize: "0.75rem", 
+                            backgroundColor: "#f8f9fa", 
+                            color: "#6c757d", 
+                            border: "1px solid #dee2e6",
+                            padding: "4px 8px", 
+                            borderRadius: "12px", 
+                            fontWeight: "600",
+                            whiteSpace: "nowrap"
+                          }}>
+                            Keine Textbasis
+                          </span>
                         )}
+                      </td>
+                      <td style={{ padding: "12px 5px", textAlign: "right" }}>
+                        <div style={{ display: "inline-flex", gap: "8px", alignItems: "center" }}>
+                          {doc.extractedText ? (
+                            <button
+                              type="button"
+                              className="btn-secondary"
+                              style={{ padding: "4px 8px", fontSize: "0.75rem", cursor: "pointer" }}
+                              onClick={() => setPreviewDoc(doc)}
+                            >
+                              Vorschau anzeigen
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn-primary"
+                              style={{ padding: "4px 8px", fontSize: "0.75rem", cursor: "pointer" }}
+                              onClick={(e) => handleExtractText(e, doc.id)}
+                              disabled={isExtractingMap[doc.id]}
+                            >
+                              {isExtractingMap[doc.id] ? "Wird extrahiert..." : "Text extrahieren"}
+                            </button>
+                          )}
+                          
+                          {pendingDeleteDocId === doc.id ? (
+                            <div 
+                              className="delete-confirm-box"
+                              style={{ 
+                                display: "inline-flex", 
+                                flexDirection: "column", 
+                                gap: "4px", 
+                                padding: "8px", 
+                                backgroundColor: "rgba(220, 53, 69, 0.05)", 
+                                border: "1px solid #dc3545", 
+                                borderRadius: "4px",
+                                textAlign: "left",
+                                maxWidth: "180px"
+                              }}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }}
+                            >
+                              <span style={{ fontSize: "0.75rem", fontWeight: "600", color: "#dc3545", whiteSpace: "normal" }}>
+                                Diesen Dokumenteintrag wirklich löschen?
+                              </span>
+                              <div style={{ display: "flex", gap: "4px", marginTop: "2px" }}>
+                                <button 
+                                  type="button" 
+                                  className="btn-danger" 
+                                  style={{ padding: "2px 6px", fontSize: "0.75rem", cursor: "pointer" }}
+                                  onClick={(e) => handleConfirmDelete(e, doc.id)}
+                                >
+                                  Ja, löschen
+                                </button>
+                                <button 
+                                  type="button" 
+                                  className="btn-secondary" 
+                                  style={{ padding: "2px 6px", fontSize: "0.75rem", cursor: "pointer" }}
+                                  onClick={(e) => handleCancelDelete(e)}
+                                >
+                                  Abbrechen
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button 
+                              type="button"
+                              className="btn-danger" 
+                              style={{ padding: "4px 8px", fontSize: "0.75rem" }}
+                              onClick={(e) => handleDeleteClick(e, doc.id)}
+                              disabled={isExtractingMap[doc.id]}
+                              title="Dokumenteintrag löschen"
+                            >
+                              Löschen
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -403,6 +467,103 @@ export default function CaseDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Preview Modal Overlay */}
+      {previewDoc && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0,0,0,0.5)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 1000,
+          padding: "20px"
+        }} onClick={() => setPreviewDoc(null)}>
+          <div style={{
+            backgroundColor: "#fff",
+            borderRadius: "8px",
+            width: "100%",
+            maxWidth: "600px",
+            maxHeight: "80vh",
+            display: "flex",
+            flexDirection: "column",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
+          }} onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div style={{
+              padding: "15px 20px",
+              borderBottom: "1px solid var(--border-color)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center"
+            }}>
+              <h3 style={{ margin: 0, fontSize: "1.2rem" }}>Textvorschau: {previewDoc.title}</h3>
+              <button 
+                type="button" 
+                style={{ 
+                  background: "none", 
+                  border: "none", 
+                  fontSize: "1.5rem", 
+                  cursor: "pointer", 
+                  color: "var(--text-muted)", 
+                  padding: "0" 
+                }} 
+                onClick={() => setPreviewDoc(null)}
+              >
+                &times;
+              </button>
+            </div>
+            {/* Content */}
+            <div style={{
+              padding: "20px",
+              overflowY: "auto",
+              flex: 1,
+              lineHeight: "1.6",
+              fontSize: "0.95rem",
+              whiteSpace: "pre-wrap",
+              backgroundColor: "var(--bg-color)"
+            }}>
+              {previewDoc.extractedText ? (
+                <>
+                  {previewDoc.extractedText.substring(0, 800)}
+                  {previewDoc.extractedText.length > 800 && (
+                    <div style={{
+                      marginTop: "15px",
+                      color: "var(--text-muted)",
+                      fontStyle: "italic",
+                      borderTop: "1px dashed var(--border-color)",
+                      paddingTop: "10px"
+                    }}>
+                      [...] (Vorschau auf 800 Zeichen begrenzt)
+                    </div>
+                  )}
+                </>
+              ) : (
+                <span style={{ color: "var(--text-muted)" }}>Keine Textgrundlage vorhanden.</span>
+              )}
+            </div>
+            {/* Footer */}
+            <div style={{
+              padding: "15px 20px",
+              borderTop: "1px solid var(--border-color)",
+              display: "flex",
+              justifyContent: "flex-end"
+            }}>
+              <button 
+                type="button" 
+                className="btn-secondary" 
+                onClick={() => setPreviewDoc(null)}
+              >
+                Schliessen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

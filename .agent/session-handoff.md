@@ -2,43 +2,50 @@
 
 ## Aktueller Stand
 
-Iteration I-06 wurde erfolgreich und vollumfänglich abgeschlossen. Die physische Dokumentenablage wurde durch die Anbindung von Supabase Storage in das System integriert. Das Hochladen von Dokumenten erfolgt nun direkt in einen privaten Storage Bucket in der Cloud.
+Iteration I-07 wurde erfolgreich und vollumfänglich abgeschlossen. Das Assistenzsystem verfügt nun über eine automatische, serverbasierte Textextraktion aus hochgeladenen textbasierten PDF-, TXT- und DOCX-Dateien. Die extrahierten Textinhalte werden persistent in der PostgreSQL-Datenbank gespeichert und bilden eine überprüfbare Textgrundlage für spätere KI-Analysen.
 
 ### Wichtigste Meilensteine:
-1. **Supabase Storage Integration:** Der Hook `useDocuments` wurde so erweitert, dass ausgewählte Dateien direkt und asynchron in den privaten Storage Bucket `tender-documents` hochgeladen werden.
-2. **Synchrones Löschen & Rollback:** Ein dokumentenbezogenes Löschen entfernt zuerst das physische Storage-Objekt und anschliessend den DB-Metadateneintrag. Falls die DB-Transaktion beim Hinzufügen fehlschlägt, wird die hochgeladene Datei automatisch wieder aus dem Storage entfernt (`rollback`).
-3. **Format- und Grössenbegrenzung:** Es werden ausschliesslich `.pdf`, `.txt` und `.docx` Dateien bis zu einer maximalen Dateigrösse von 10 MB akzeptiert. Ungültige Dateien werden vor dem Upload mit einer sachlichen Fehlermeldung blockiert.
-4. **UI- loader-Erweiterung:** Der Upload-Prozess deaktiviert Schaltflächen, ändert den Button-Text zu „Wird hochgeladen...“ und verhindert so Mehrfacheingaben.
-5. **Bekannte PoC-Grenze:** Beim Löschen eines gesamten Cases werden die verknüpften Dokumente in der Datenbank kaskadierend gelöscht, die physischen Storage-Dateien verbleiben jedoch als Datenleichen im Bucket. Dies wurde bewusst als bekannte technische Grenze des PoCs dokumentiert.
-6. **Validierung:** Der Next.js-Produktions-Build (`npm run build`) kompiliert ohne TypeScript- oder Laufzeitfehler.
+1. **Server-seitige Textextraktion (Next.js Route Handler):** Der Handler `/api/documents/[documentId]/extract-text` lädt Binärdaten aus Supabase Storage und extrahiert Text (UTF-8 für `.txt`, `pdf-parse` für textbasierte PDFs, `mammoth` für Word `.docx`).
+2. **Textvalidierung & OCR-Ausschluss:** Der Route Handler validiert, ob Text extrahiert wurde. Ist das Ergebnis leer (z.B. bei gescannten Bildern in PDFs), bricht er ab und gibt eine sachliche Fehlermeldung aus. Scan-PDFs und OCR werden absichtlich nicht unterstützt und als bekannte PoC-Grenze deklariert.
+3. **Datenbank-Persistierung:** Der extrahierte Text wird persistent im Spaltenfeld `extracted_text` der bestehenden Tabelle `documents` in Supabase gespeichert.
+4. **Hook-Erweiterung:** Der Hook `useDocuments` wurde um die fetch-Methode `extractDocumentText(documentId)` erweitert, um die Extraktion asynchron zu triggern und den lokalen React State reaktiv zu aktualisieren.
+5. **UI-loader & Status-Anzeigen:**
+   - Visualisierung durch Status-Badges: „Textbasis vorhanden“ (grün) oder „Keine Textbasis“ (grau).
+   - Während der Extraktion wird der Button auf „Wird extrahiert...“ geändert und deaktiviert.
+6. **Vorschau-Modal:** Klickt der Nutzer auf „Vorschau anzeigen“, öffnet sich ein einfaches Modal-Fenster, das die ersten 800 Zeichen des Textes als kurze Vorschau darstellt und bei Überschreitung ein Suffix `[...] (Vorschau auf 800 Zeichen begrenzt)` anhängt.
+7. **Validierung:** Der Next.js-Produktions-Build (`npm run build`) kompiliert ohne TypeScript- oder Laufzeitfehler.
 
 ---
 
-## Letzte erledigte Schritte (I-05 & I-06)
+## Letzte erledigte Schritte (I-06 & I-07)
 
-- **Iteration I-05:**
-  - Einrichtung des typisierten Supabase Database Clients in `src/lib/supabase.ts`.
-  - Migration der Hooks `useCases.ts` und `useDocuments.ts` auf asynchrone Supabase-Abfragen mit Snake-Case-zu-Camel-Case-Mapping.
-  - Dokumentation der Evidenzen (`I-05_supabase-datenhaltung.md`, Prompts, Build- und Git-Logs).
 - **Iteration I-06:**
   - Konzeption und Implementierung des echten Datei-Uploads in den privaten Storage Bucket `tender-documents`.
   - Client-seitige Format- und Dateigrösseprüfung vor dem Upload.
   - Synchronisierte Löschlogik (zuerst Storage, dann DB) im `useDocuments.ts` Hook.
   - Ladeindikatoren und Schaltflächensperre in `/cases/[caseId]/page.tsx`.
   - Dokumentation der Evidenzen (`I-06_supabase-storage-upload.md`, Prompts und Build-Logs).
+- **Iteration I-07:**
+  - Installation von `pdf-parse` und `mammoth`.
+  - Erstellung des Next.js Route Handlers zur serverseitigen Textextraktion.
+  - Integration der fetch-Funktion `extractDocumentText` im Custom Hook.
+  - UI-Statusbadges, Ladeindikatoren und 800-Zeichen-Vorschau-Modal in `/cases/[caseId]/page.tsx`.
+  - Dokumentation der Evidenzen (`I-07_textextraktion.md`, Prompts und Build-Logs).
 
 ---
 
 ## Nächste geplante Iteration
 
-### I-07: Dokumenten-Textextraktion (Analysebasis)
+### I-08: Prompt-Verwaltung & KI-Analyse (Vercel AI SDK / OpenAI)
 
 **Ziel:**
-Auslesen und Extrahieren von Textinhalten (PDF-Parsing und Textextraktion) aus hochgeladenen Dokumenten und persistentes Speichern im Feld `extracted_text` in der `documents`-Datenbanktabelle. Dies bildet die inhaltliche Text-Grundlage für zukünftige KI-Analysen.
+Anbindung des Vercel AI SDK und OpenAI (oder einem anderen initialen LLM), um Prompts auf Basis der extrahierten Textgrundlage eines ausgewählten Dokuments auszuführen. Die erzeugten Ergebnisse werden einem Analysefall und dem Dokument zugeordnet.
 
 **MVP-Bezug:**
-- **F2:** Vollständiges Zuweisen und Bereitstellen von textbasierten Dokumentinhalten für die KI-Analyse.
-- **F4 (Vorbereitung):** Textinhalte stehen für die Ausführung von Prompts bereit.
+- **F4:** Ein Prompt kann auf Basis eines ausgewählten Dokuments ausgeführt werden.
+- **F5:** Prompts können angepasst und erneut ausgeführt werden.
+- **F6:** Verwendete Prompts und erzeugte Ergebnisse bleiben einem Analysefall zuordenbar.
+- **F8:** Ergebnisse können entlang relevanter Analyseperspektiven ausgewertet werden.
 
 ---
 
