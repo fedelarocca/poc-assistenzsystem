@@ -159,8 +159,8 @@ export default function CasesPage() {
                     flexDirection: "column",
                     gap: "8px",
                     padding: "12px",
-                    backgroundColor: "rgba(220, 53, 69, 0.05)",
-                    border: "1px solid #dc3545",
+                    backgroundColor: "var(--danger-bg)",
+                    border: "1px solid var(--danger-border)",
                     borderRadius: "6px",
                     alignSelf: "center",
                     minWidth: "240px"
@@ -170,7 +170,7 @@ export default function CasesPage() {
                     e.stopPropagation();
                   }}
                 >
-                  <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "#dc3545" }}>
+                  <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "var(--danger-color)" }}>
                     Diesen Analysefall wirklich löschen?
                   </span>
                   <div style={{ display: "flex", gap: "8px" }}>

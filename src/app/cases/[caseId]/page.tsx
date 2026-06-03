@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCases } from "../../../hooks/useCases";
@@ -66,6 +66,20 @@ export default function CaseDetailPage() {
   const [expandedSavedResultId, setExpandedSavedResultId] = useState<string | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [activeTab, setActiveTab] = useState<"documents" | "analysis" | "results" | "saved">("documents");
+  const [hasAutoSwitched, setHasAutoSwitched] = useState(false);
+
+  // Auto switch default tab once when docs are loaded
+  useEffect(() => {
+    if (isDocsLoaded && !hasAutoSwitched) {
+      const docs = getDocumentsByCaseId(caseId);
+      const withText = docs.filter((d) => d.extractedText && d.extractedText.trim());
+      if (withText.length > 0) {
+        setActiveTab("analysis");
+      }
+      setHasAutoSwitched(true);
+    }
+  }, [isDocsLoaded, caseId, getDocumentsByCaseId, hasAutoSwitched]);
 
   // Avoid hydration mismatch by waiting for local storage to load
   if (!isCasesLoaded || !isDocsLoaded || !isAnalysisLoaded || !isSavedResultsLoaded) {
@@ -260,14 +274,14 @@ export default function CaseDetailPage() {
       )}
 
       {/* Case Header & Metadata */}
-      <div className="card" style={{ marginBottom: "30px", borderLeft: "4px solid var(--primary-color)" }}>
-        <h1 style={{ margin: "0 0 10px 0", fontSize: "2rem" }}>{currentCase.title}</h1>
+      <div className="card" style={{ padding: "16px 20px", marginBottom: "20px", borderLeft: "4px solid var(--primary-color)" }}>
+        <h1 style={{ margin: "0 0 6px 0", fontSize: "1.5rem" }}>{currentCase.title}</h1>
         {currentCase.description && (
-          <p style={{ fontSize: "1.1rem", color: "var(--text-color)", margin: "0 0 20px 0", lineHeight: "1.6" }}>
+          <p style={{ fontSize: "0.95rem", color: "var(--text-muted)", margin: "0 0 12px 0", lineHeight: "1.5" }}>
             {currentCase.description}
           </p>
         )}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", fontSize: "0.85rem", color: "var(--text-muted)", borderTop: "1px solid var(--border-color)", paddingTop: "15px" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "15px", fontSize: "0.8rem", color: "var(--text-muted)", borderTop: "1px solid var(--border-color)", paddingTop: "10px" }}>
           <div>
             <strong>Erstellt am:</strong> {new Date(currentCase.createdAt).toLocaleString("de-CH")}
           </div>
@@ -276,741 +290,791 @@ export default function CaseDetailPage() {
           </div>
         </div>
       </div>
+      {/* Tab/Workflow Navigation */}
+      <div className="workspace-tabs">
+        <button 
+          type="button"
+          className={`tab-btn ${activeTab === "documents" ? "active" : ""}`}
+          onClick={() => setActiveTab("documents")}
+        >
+          Dokumente
+        </button>
+        <button 
+          type="button"
+          className={`tab-btn ${activeTab === "analysis" ? "active" : ""}`}
+          onClick={() => {
+            setActiveTab("analysis");
+            // Auto pre-select document if none selected and texts are available
+            if (!selectedDocId && docsWithText.length > 0) {
+              setSelectedDocId(docsWithText[0].id);
+            }
+          }}
+        >
+          Analyse ausführen
+        </button>
+        <button 
+          type="button"
+          className={`tab-btn ${activeTab === "results" ? "active" : ""}`}
+          onClick={() => setActiveTab("results")}
+        >
+          Ergebnisse prüfen ({analysisResults.length})
+        </button>
+        <button 
+          type="button"
+          className={`tab-btn ${activeTab === "saved" ? "active" : ""}`}
+          onClick={() => setActiveTab("saved")}
+        >
+          Gespeicherte Ergebnisse ({savedResults.length})
+        </button>
+      </div>
 
-      {/* Preparatory Sections Workspace Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px" }}>
+      {/* Active Tab Workspace Panel */}
+      <div className="workspace-panel">
         
-        {/* Section 1: Documents - Active in I-04 */}
-        <div className="card" style={{ display: "flex", flexDirection: "column", gridColumn: "span 2" }}>
-          <div style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "10px", marginBottom: "15px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ margin: 0 }}>Dokumente</h2>
-            {!isAddingDoc && isSupabaseConfigured && (
-              <button 
-                type="button" 
-                className="btn-primary" 
-                style={{ fontSize: "0.85rem", padding: "6px 12px" }}
-                onClick={() => setIsAddingDoc(true)}
-              >
-                Dokument zuordnen
-              </button>
+        {/* Tab 1: Documents */}
+        {activeTab === "documents" && (
+          <div className="card" style={{ display: "flex", flexDirection: "column" }}>
+            <div style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "10px", marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h2 style={{ margin: 0 }}>Dokumente</h2>
+              {!isAddingDoc && isSupabaseConfigured && (
+                <button 
+                  type="button" 
+                  className="btn-primary" 
+                  style={{ fontSize: "0.85rem", padding: "6px 12px" }}
+                  onClick={() => setIsAddingDoc(true)}
+                >
+                  Dokument zuordnen
+                </button>
+              )}
+            </div>
+
+            {/* Add Document Form */}
+            {isAddingDoc && (
+              <div className="card" style={{ backgroundColor: "var(--bg-color)", marginBottom: "20px", border: "1px dashed var(--border-color)" }}>
+                <h3 style={{ marginTop: 0 }}>Lokales Dokument zuordnen</h3>
+                
+                <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", backgroundColor: "#eef7ff", padding: "10px", borderRadius: "4px", borderLeft: "4px solid #0a58ca", marginBottom: "15px", lineHeight: "1.4" }}>
+                  <strong>Hinweis:</strong> Es wird eine Datei ausgewählt, in Supabase Storage gespeichert und deren Metadaten werden persistent mit dem Analysefall verknüpft. Erlaubt sind PDF-, TXT- und DOCX-Dateien bis maximal 10 MB.
+                </div>
+
+                <form onSubmit={handleAddDocument}>
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="fileInput">Datei auswählen *</label>
+                    <input
+                      id="fileInput"
+                      type="file"
+                      ref={fileInputRef}
+                      className="form-control"
+                      onChange={handleFileChange}
+                      accept=".pdf,.txt,.docx"
+                      required
+                      disabled={isUploading}
+                      style={{ backgroundColor: "#fff" }}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="docTitle">Dokumenttitel (optional)</label>
+                    <input
+                      id="docTitle"
+                      type="text"
+                      className="form-control"
+                      value={docTitle}
+                      onChange={(e) => setDocTitle(e.target.value)}
+                      disabled={isUploading}
+                      placeholder={selectedFile ? selectedFile.name : "z.B. Ausschreibung IT-Services"}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="docDescription">Beschreibung (optional)</label>
+                    <textarea
+                      id="docDescription"
+                      className="form-control"
+                      value={docDescription}
+                      onChange={(e) => setDocDescription(e.target.value)}
+                      disabled={isUploading}
+                      placeholder="z.B. Lastenheft oder Leistungsvereinbarung"
+                      rows={2}
+                    />
+                  </div>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <button 
+                      type="submit" 
+                      className="btn-primary" 
+                      style={{ padding: "8px 16px", fontSize: "0.9rem" }}
+                      disabled={isUploading || !selectedFile}
+                    >
+                      {isUploading ? "Wird hochgeladen..." : "Dokument zuordnen"}
+                    </button>
+                    <button 
+                      type="button" 
+                      className="btn-secondary" 
+                      style={{ padding: "8px 16px", fontSize: "0.9rem" }} 
+                      disabled={isUploading}
+                      onClick={() => {
+                        setIsAddingDoc(false);
+                        setDocTitle("");
+                        setDocDescription("");
+                        setSelectedFile(null);
+                      }}
+                    >
+                      Abbrechen
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Documents Card List */}
+            {caseDocs.length === 0 ? (
+              <div className="empty-state" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minHeight: "150px" }}>
+                Noch keine Dokumente zugeordnet. Ordnen Sie oben rechts ein Dokument zu.
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {caseDocs.map((doc) => (
+                  <div key={doc.id} style={{ 
+                    display: "flex", 
+                    justifyContent: "space-between", 
+                    alignItems: "center", 
+                    padding: "16px 20px", 
+                    border: "1px solid var(--border-color)", 
+                    borderRadius: "8px", 
+                    backgroundColor: "#ffffff",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+                    gap: "15px",
+                    flexWrap: "wrap"
+                  }}>
+                    {/* Doc Metadata Details */}
+                    <div style={{ flex: "1 1 300px", minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                        <strong style={{ fontSize: "1rem", color: "var(--primary-color)", wordBreak: "break-word" }}>{doc.title}</strong>
+                        {doc.extractedText ? (
+                          <span className="badge badge-success">✓ Textbasis</span>
+                        ) : (
+                          <span className="badge badge-secondary">Keine Textbasis</span>
+                        )}
+                      </div>
+                      {doc.description && (
+                        <p style={{ margin: "4px 0 0 0", fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                          {doc.description}
+                        </p>
+                      )}
+                      <div style={{ display: "flex", gap: "12px", fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "8px", flexWrap: "wrap", alignItems: "center" }}>
+                        <span className="technical-path" style={{ display: "inline-block", maxWidth: "250px" }}>
+                          📄 {doc.fileName}
+                        </span>
+                        <span>•</span>
+                        <span>{formatFileSize(doc.fileSize)}</span>
+                        <span>•</span>
+                        <span style={{ textTransform: "uppercase" }}>{doc.fileType.split("/")[1] || doc.fileType}</span>
+                        <span>•</span>
+                        <span>Zugeordnet: {new Date(doc.createdAt).toLocaleDateString("de-CH")}</span>
+                      </div>
+                    </div>
+
+                    {/* Doc Actions */}
+                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                      {doc.extractedText ? (
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          style={{ padding: "6px 12px", fontSize: "0.8rem" }}
+                          onClick={() => setPreviewDoc(doc)}
+                        >
+                          Vorschau anzeigen
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn-primary"
+                          style={{ padding: "6px 12px", fontSize: "0.8rem" }}
+                          onClick={(e) => handleExtractText(e, doc.id)}
+                          disabled={isExtractingMap[doc.id]}
+                        >
+                          {isExtractingMap[doc.id] ? "Wird extrahiert..." : "Text extrahieren"}
+                        </button>
+                      )}
+
+                      {pendingDeleteDocId === doc.id ? (
+                        <div 
+                          className="delete-confirm-box"
+                          style={{ 
+                            display: "flex", 
+                            alignItems: "center", 
+                            gap: "8px", 
+                            padding: "6px 10px", 
+                            backgroundColor: "var(--danger-bg)", 
+                            border: "1px solid var(--danger-border)", 
+                            borderRadius: "6px",
+                            textAlign: "left"
+                          }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                        >
+                          <span style={{ fontSize: "0.8rem", fontWeight: "600", color: "var(--danger-color)" }}>
+                            Löschen?
+                          </span>
+                          <button 
+                            type="button" 
+                            className="btn-danger" 
+                            style={{ padding: "4px 8px", fontSize: "0.75rem", cursor: "pointer" }}
+                            onClick={(e) => handleConfirmDelete(e, doc.id)}
+                          >
+                            Ja
+                          </button>
+                          <button 
+                            type="button" 
+                            className="btn-secondary" 
+                            style={{ padding: "4px 8px", fontSize: "0.75rem", cursor: "pointer" }}
+                            onClick={(e) => handleCancelDelete(e)}
+                          >
+                            Nein
+                          </button>
+                        </div>
+                      ) : (
+                        <button 
+                          type="button"
+                          className="btn-danger" 
+                          style={{ padding: "6px 12px", fontSize: "0.8rem" }}
+                          onClick={(e) => handleDeleteClick(e, doc.id)}
+                          disabled={isExtractingMap[doc.id]}
+                          title="Dokumenteintrag löschen"
+                        >
+                          Löschen
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
+        )}
 
-          {/* Add Document Form */}
-          {isAddingDoc && (
-            <div className="card" style={{ backgroundColor: "var(--bg-color)", marginBottom: "20px", border: "1px dashed var(--border-color)" }}>
-              <h3 style={{ marginTop: 0 }}>Lokales Dokument zuordnen</h3>
-              
-              <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", backgroundColor: "#eef7ff", padding: "10px", borderRadius: "4px", borderLeft: "4px solid #0a58ca", marginBottom: "15px", lineHeight: "1.4" }}>
-                <strong>Hinweis:</strong> Es wird eine Datei ausgewählt, in Supabase Storage gespeichert und deren Metadaten werden persistent mit dem Analysefall verknüpft. Erlaubt sind PDF-, TXT- und DOCX-Dateien bis maximal 10 MB.
+        {/* Tab 2: Analyse ausführen */}
+        {activeTab === "analysis" && (
+          <div className="card" style={{ display: "flex", flexDirection: "column" }}>
+            <h2 style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", margin: "0 0 20px 0" }}>
+              Analyse ausführen
+              <span style={{ fontSize: "0.75rem", backgroundColor: "var(--bg-color)", padding: "4px 8px", borderRadius: "12px", color: "var(--text-muted)", fontWeight: "normal" }}>Ausschreibungsanalyse</span>
+            </h2>
+            
+            {docsWithText.length === 0 ? (
+              <div className="empty-state" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", textAlign: "center", minHeight: "150px" }}>
+                <div>
+                  <p style={{ margin: "0 0 10px 0", fontWeight: "600", color: "var(--text-muted)" }}>Keine Textgrundlage vorhanden.</p>
+                  <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--text-muted)", lineHeight: "1.4" }}>
+                    Für diesen Analysefall ist noch keine Textgrundlage vorhanden. Extrahieren Sie zuerst den Text eines zugeordneten Dokuments im Tab „Dokumente“.
+                  </p>
+                </div>
               </div>
-
-              <form onSubmit={handleAddDocument}>
+            ) : (
+              <form onSubmit={handleExecuteAnalysis} style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
                 <div className="form-group">
-                  <label className="form-label" htmlFor="fileInput">Datei auswählen *</label>
-                  <input
-                    id="fileInput"
-                    type="file"
-                    ref={fileInputRef}
-                    className="form-control"
-                    onChange={handleFileChange}
-                    accept=".pdf,.txt,.docx"
-                    required
-                    disabled={isUploading}
-                    style={{ backgroundColor: "#fff" }}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label" htmlFor="docTitle">Dokumenttitel (optional)</label>
-                  <input
-                    id="docTitle"
-                    type="text"
-                    className="form-control"
-                    value={docTitle}
-                    onChange={(e) => setDocTitle(e.target.value)}
-                    disabled={isUploading}
-                    placeholder={selectedFile ? selectedFile.name : "z.B. Ausschreibung IT-Services"}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label" htmlFor="docDescription">Beschreibung (optional)</label>
-                  <textarea
-                    id="docDescription"
-                    className="form-control"
-                    value={docDescription}
-                    onChange={(e) => setDocDescription(e.target.value)}
-                    disabled={isUploading}
-                    placeholder="z.B. Lastenheft oder Leistungsvereinbarung"
-                    rows={2}
-                  />
-                </div>
-                <div style={{ display: "flex", gap: "10px" }}>
-                  <button 
-                    type="submit" 
-                    className="btn-primary" 
-                    style={{ padding: "8px 16px", fontSize: "0.9rem" }}
-                    disabled={isUploading || !selectedFile}
-                  >
-                    {isUploading ? "Wird hochgeladen..." : "Dokument zuordnen"}
-                  </button>
-                  <button 
-                    type="button" 
-                    className="btn-secondary" 
-                    style={{ padding: "8px 16px", fontSize: "0.9rem" }} 
-                    disabled={isUploading}
-                    onClick={() => {
-                      setIsAddingDoc(false);
-                      setDocTitle("");
-                      setDocDescription("");
-                      setSelectedFile(null);
-                    }}
-                  >
-                    Abbrechen
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          {/* Documents List */}
-          {caseDocs.length === 0 ? (
-            <div className="empty-state" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minHeight: "150px" }}>
-              Noch keine Dokumente zugeordnet.
-            </div>
-          ) : (
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem", textAlign: "left" }}>
-                <thead>
-                  <tr style={{ borderBottom: "2px solid var(--border-color)", color: "var(--text-muted)" }}>
-                    <th style={{ padding: "10px 5px" }}>Dokumenttitel</th>
-                    <th style={{ padding: "10px 5px" }}>Dateiname</th>
-                    <th style={{ padding: "10px 5px" }}>Grösse</th>
-                    <th style={{ padding: "10px 5px" }}>Typ</th>
-                    <th style={{ padding: "10px 5px" }}>Zugeordnet am</th>
-                    <th style={{ padding: "10px 5px" }}>Textbasis</th>
-                    <th style={{ padding: "10px 5px", textAlign: "right" }}>Aktion</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {caseDocs.map((doc) => (
-                    <tr key={doc.id} style={{ borderBottom: "1px solid var(--border-color)" }}>
-                      <td style={{ padding: "12px 5px" }}>
-                        <div style={{ fontWeight: "600" }}>{doc.title}</div>
-                        {doc.description && <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "2px" }}>{doc.description}</div>}
-                      </td>
-                      <td className="technical-path" style={{ padding: "12px 5px" }}>{doc.fileName}</td>
-                      <td style={{ padding: "12px 5px" }}>{formatFileSize(doc.fileSize)}</td>
-                      <td style={{ padding: "12px 5px", color: "var(--text-muted)", fontSize: "0.8rem" }}>{doc.fileType}</td>
-                      <td style={{ padding: "12px 5px" }}>{new Date(doc.createdAt).toLocaleString("de-CH")}</td>
-                      <td style={{ padding: "12px 5px" }}>
-                        {doc.extractedText ? (
-                          <span style={{ 
-                            fontSize: "0.75rem", 
-                            backgroundColor: "#d1e7dd", 
-                            color: "#0f5132", 
-                            padding: "4px 8px", 
-                            borderRadius: "12px", 
-                            fontWeight: "600",
-                            whiteSpace: "nowrap"
-                          }}>
-                            Textbasis vorhanden
-                          </span>
-                        ) : (
-                          <span style={{ 
-                            fontSize: "0.75rem", 
-                            backgroundColor: "#f8f9fa", 
-                            color: "#6c757d", 
-                            border: "1px solid #dee2e6",
-                            padding: "4px 8px", 
-                            borderRadius: "12px", 
-                            fontWeight: "600",
-                            whiteSpace: "nowrap"
-                          }}>
-                            Keine Textbasis
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ padding: "12px 5px", textAlign: "right" }}>
-                        <div style={{ display: "inline-flex", gap: "8px", alignItems: "center" }}>
-                          {doc.extractedText ? (
-                            <button
-                              type="button"
-                              className="btn-secondary"
-                              style={{ padding: "4px 8px", fontSize: "0.75rem", cursor: "pointer" }}
-                              onClick={() => setPreviewDoc(doc)}
-                            >
-                              Vorschau anzeigen
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              className="btn-primary"
-                              style={{ padding: "4px 8px", fontSize: "0.75rem", cursor: "pointer" }}
-                              onClick={(e) => handleExtractText(e, doc.id)}
-                              disabled={isExtractingMap[doc.id]}
-                            >
-                              {isExtractingMap[doc.id] ? "Wird extrahiert..." : "Text extrahieren"}
-                            </button>
-                          )}
-                          
-                          {pendingDeleteDocId === doc.id ? (
-                            <div 
-                              className="delete-confirm-box"
-                              style={{ 
-                                display: "inline-flex", 
-                                flexDirection: "column", 
-                                gap: "4px", 
-                                padding: "8px", 
-                                backgroundColor: "rgba(220, 53, 69, 0.05)", 
-                                border: "1px solid #dc3545", 
-                                borderRadius: "4px",
-                                textAlign: "left",
-                                maxWidth: "180px"
-                              }}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                              }}
-                            >
-                              <span style={{ fontSize: "0.75rem", fontWeight: "600", color: "#dc3545", whiteSpace: "normal" }}>
-                                Diesen Dokumenteintrag wirklich löschen?
-                              </span>
-                              <div style={{ display: "flex", gap: "4px", marginTop: "2px" }}>
-                                <button 
-                                  type="button" 
-                                  className="btn-danger" 
-                                  style={{ padding: "2px 6px", fontSize: "0.75rem", cursor: "pointer" }}
-                                  onClick={(e) => handleConfirmDelete(e, doc.id)}
-                                >
-                                  Ja, löschen
-                                </button>
-                                <button 
-                                  type="button" 
-                                  className="btn-secondary" 
-                                  style={{ padding: "2px 6px", fontSize: "0.75rem", cursor: "pointer" }}
-                                  onClick={(e) => handleCancelDelete(e)}
-                                >
-                                  Abbrechen
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <button 
-                              type="button"
-                              className="btn-danger" 
-                              style={{ padding: "4px 8px", fontSize: "0.75rem" }}
-                              onClick={(e) => handleDeleteClick(e, doc.id)}
-                              disabled={isExtractingMap[doc.id]}
-                              title="Dokumenteintrag löschen"
-                            >
-                              Löschen
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        {/* Section 2: Prompts / Execution */}
-        <div className="card" style={{ display: "flex", flexDirection: "column" }}>
-          <h2 style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", margin: "0 0 15px 0" }}>
-            Analyse / Prompts
-            <span style={{ fontSize: "0.75rem", backgroundColor: "var(--bg-color)", padding: "4px 8px", borderRadius: "12px", color: "var(--text-muted)", fontWeight: "normal" }}>Ausschreibungsanalyse</span>
-          </h2>
-          
-          {docsWithText.length === 0 ? (
-            <div className="empty-state" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", textAlign: "center", minHeight: "150px" }}>
-              <div>
-                <p style={{ margin: "0 0 10px 0", fontWeight: "600", color: "var(--text-muted)" }}>Keine Textgrundlage vorhanden.</p>
-                <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--text-muted)", lineHeight: "1.4" }}>
-                  Für diesen Analysefall ist noch keine Textgrundlage vorhanden. Extrahieren Sie zuerst den Text eines zugeordneten Dokuments.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <form onSubmit={handleExecuteAnalysis} style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-              <div className="form-group">
-                <label className="form-label" htmlFor="analysisDocSelect" style={{ fontWeight: "600" }}>Dokument auswählen *</label>
-                <select
-                  id="analysisDocSelect"
-                  className="form-control"
-                  value={selectedDocId}
-                  onChange={(e) => setSelectedDocId(e.target.value)}
-                  required
-                  disabled={isAnalyzing}
-                  style={{ backgroundColor: "#fff" }}
-                >
-                  <option value="">-- Dokument auswählen --</option>
-                  {docsWithText.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.title} ({d.fileName})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
-                <div className="form-group">
-                  <label className="form-label" htmlFor="providerSelect" style={{ fontWeight: "600" }}>KI-Provider *</label>
+                  <label className="form-label" htmlFor="analysisDocSelect" style={{ fontWeight: "600" }}>Dokument auswählen *</label>
                   <select
-                    id="providerSelect"
+                    id="analysisDocSelect"
                     className="form-control"
-                    value={provider}
-                    onChange={(e) => {
-                      const newProvider = e.target.value;
-                      setProvider(newProvider);
-                      // Auto-update model to start model of new provider
-                      if (newProvider === "google") {
-                        setModel("gemini-3.1-flash-lite");
-                      } else {
-                        setModel("gpt-4o-mini");
-                      }
-                    }}
+                    value={selectedDocId}
+                    onChange={(e) => setSelectedDocId(e.target.value)}
                     required
                     disabled={isAnalyzing}
                     style={{ backgroundColor: "#fff" }}
                   >
-                    <option value="google">Google Gemini</option>
-                    <option value="openai">OpenAI</option>
+                    <option value="">-- Dokument auswählen --</option>
+                    {docsWithText.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.title} ({d.fileName})
+                      </option>
+                    ))}
                   </select>
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label" htmlFor="modelSelect" style={{ fontWeight: "600" }}>Modell *</label>
-                  <select
-                    id="modelSelect"
-                    className="form-control"
-                    value={model}
-                    onChange={(e) => setModel(e.target.value)}
-                    required
-                    disabled={isAnalyzing}
-                    style={{ backgroundColor: "#fff" }}
-                  >
-                    {provider === "google" ? (
-                      <>
-                        <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite (Standard)</option>
-                        <option value="gemini-1.5-flash">gemini-1.5-flash (Kompatibel)</option>
-                        <option value="gemini-2.0-flash">gemini-2.0-flash</option>
-                        <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-                        <option value="gemini-3.1-flash">gemini-3.1-flash</option>
-                        <option value="gemini-3.1-pro">gemini-3.1-pro</option>
-                      </>
-                    ) : (
-                      <>
-                        <option value="gpt-4o-mini">gpt-4o-mini (Standard)</option>
-                        <option value="gpt-4o">gpt-4o</option>
-                        <option value="o3-mini">o3-mini</option>
-                      </>
-                    )}
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="promptTextarea" style={{ fontWeight: "600" }}>Analyseprompt *</label>
-                <textarea
-                  id="promptTextarea"
-                  className="form-control"
-                  value={promptText}
-                  onChange={(e) => setPromptText(e.target.value)}
-                  required
-                  disabled={isAnalyzing}
-                  rows={6}
-                  style={{ resize: "vertical", fontSize: "0.9rem", lineHeight: "1.4", minHeight: "150px" }}
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="btn-primary"
-                disabled={isAnalyzing || !selectedDocId}
-                style={{ width: "100%", padding: "10px", fontWeight: "600" }}
-              >
-                {isAnalyzing ? "Analyse wird ausgeführt..." : "Analyse ausführen"}
-              </button>
-            </form>
-          )}
-
-          {/* Active Generation Result Preview */}
-          {activeAnalysisResult && (
-            <div className="card" style={{ marginTop: "20px", backgroundColor: "#f8f9fa", border: "1px solid var(--border-color)", borderLeft: "4px solid #0f5132" }}>
-              <h4 style={{ margin: "0 0 10px 0", color: "#0f5132", fontSize: "0.95rem", fontWeight: "600" }}>Aktuelles Analyseergebnis</h4>
-              <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "10px" }}>
-                Textgrundlage wurde für die Analyse auf 20'000 Zeichen begrenzt.
-              </div>
-              <div style={{ fontSize: "0.9rem", lineHeight: "1.5", whiteSpace: "pre-wrap", overflowY: "auto", maxHeight: "300px", padding: "10px", backgroundColor: "#fff", border: "1px solid #dee2e6", borderRadius: "4px" }}>
-                {activeAnalysisResult}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Section 3: Ergebnisse (Analyse-Historie) */}
-        <div className="card" style={{ display: "flex", flexDirection: "column" }}>
-          <h2 style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", margin: "0 0 15px 0" }}>
-            Ergebnisse
-            <span style={{ fontSize: "0.75rem", backgroundColor: "var(--bg-color)", padding: "4px 8px", borderRadius: "12px", color: "var(--text-muted)", fontWeight: "normal" }}>Historie ({analysisResults.length})</span>
-          </h2>
-          
-          {analysisResults.length === 0 ? (
-            <div className="empty-state" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minHeight: "150px" }}>
-              Noch keine Analyseergebnisse vorhanden.
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-              {analysisResults.map((res) => {
-                const doc = caseDocs.find((d) => d.id === res.documentId);
-                const isExpanded = expandedResultId === res.id;
-                const isAlreadySaved = savedResults.some(r => r.analysisResultId === res.id);
-                
-                return (
-                  <div key={res.id} style={{ border: "1px solid var(--border-color)", borderRadius: "6px", overflow: "hidden" }}>
-                    {/* Collapsible Header */}
-                    <div 
-                      onClick={() => {
-                        if (isExpanded) {
-                          setExpandedResultId(null);
-                          setSaveTitle("");
-                          setSaveNote("");
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="providerSelect" style={{ fontWeight: "600" }}>KI-Provider *</label>
+                    <select
+                      id="providerSelect"
+                      className="form-control"
+                      value={provider}
+                      onChange={(e) => {
+                        const newProvider = e.target.value;
+                        setProvider(newProvider);
+                        // Auto-update model to start model of new provider
+                        if (newProvider === "google") {
+                          setModel("gemini-3.1-flash-lite");
                         } else {
-                          setExpandedResultId(res.id);
-                          setSaveTitle(`Analyseergebnis vom ${new Date(res.createdAt).toLocaleString("de-CH")}`);
-                          setSaveNote("");
+                          setModel("gpt-4o-mini");
                         }
                       }}
-                      style={{ 
-                        padding: "10px 15px", 
-                        backgroundColor: "var(--bg-color)", 
-                        cursor: "pointer", 
-                        display: "flex", 
-                        justifyContent: "space-between", 
-                        alignItems: "center",
-                        borderBottom: isExpanded ? "1px solid var(--border-color)" : "none"
-                      }}
+                      required
+                      disabled={isAnalyzing}
+                      style={{ backgroundColor: "#fff" }}
                     >
-                      <div style={{ display: "flex", flexDirection: "column", gap: "2px", textAlign: "left" }}>
-                        <span style={{ fontWeight: "600", fontSize: "0.9rem" }}>
-                          {doc ? doc.title : "Unbekanntes Dokument"}
-                        </span>
-                        <div style={{ display: "flex", gap: "8px", fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                          <span style={{ backgroundColor: "#e2e3e5", padding: "2px 6px", borderRadius: "4px", fontWeight: "600", color: "#41464b" }}>
-                            {res.provider}: {res.model}
-                          </span>
-                          <span>{new Date(res.createdAt).toLocaleString("de-CH")}</span>
-                        </div>
-                      </div>
-                      <span style={{ fontSize: "0.8rem", color: "var(--primary-color)", fontWeight: "500" }}>
-                        {isExpanded ? "Ausblenden" : "Anzeigen"}
-                      </span>
-                    </div>
-
-                    {/* Result Content */}
-                    {isExpanded && (
-                      <div style={{ padding: "15px", backgroundColor: "#fff", textAlign: "left" }}>
-                        {/* Save Action Form or Status (Form is directly visible when not saved) */}
-                        <div style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "12px", marginBottom: "12px" }}>
-                          {isAlreadySaved ? (
-                            <div style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "0.85rem", color: "#198754", backgroundColor: "#e8f5e9", padding: "10px 15px", borderRadius: "6px", border: "1px solid #c3e6cb", textAlign: "left" }}>
-                              <span style={{ fontWeight: "bold" }}>✓ Ergebnis gespeichert</span>
-                              <span style={{ fontSize: "0.8rem", color: "#146c43" }}>Dieses Analyseergebnis wurde als Momentaufnahme gespeichert.</span>
-                            </div>
-                          ) : (
-                            <div style={{ backgroundColor: "var(--bg-color)", padding: "12px", borderRadius: "6px", border: "1px solid var(--border-color)" }}>
-                              <h4 style={{ margin: "0 0 10px 0", fontSize: "0.9rem", fontWeight: "600" }}>Dieses Analyseergebnis speichern</h4>
-                              <div className="form-group" style={{ marginBottom: "10px" }}>
-                                <label className="form-label" style={{ fontSize: "0.8rem", fontWeight: "600" }}>Titel (optional)</label>
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  value={saveTitle}
-                                  onChange={(e) => setSaveTitle(e.target.value)}
-                                  placeholder={`z.B. Analyseergebnis vom ${new Date(res.createdAt).toLocaleString("de-CH")}`}
-                                  style={{ fontSize: "0.85rem", padding: "6px 10px" }}
-                                  disabled={isSaving}
-                                />
-                              </div>
-                              <div className="form-group" style={{ marginBottom: "12px" }}>
-                                <label className="form-label" style={{ fontSize: "0.8rem", fontWeight: "600" }}>Notiz (optional)</label>
-                                <textarea
-                                  className="form-control"
-                                  value={saveNote}
-                                  onChange={(e) => setSaveNote(e.target.value)}
-                                  placeholder="z.B. Relevante Unklarheiten zur vertraglichen Haftung"
-                                  rows={2}
-                                  style={{ fontSize: "0.85rem", padding: "6px 10px", resize: "vertical" }}
-                                  disabled={isSaving}
-                                />
-                              </div>
-                              <div style={{ display: "flex", gap: "8px" }}>
-                                <button
-                                  type="button"
-                                  className="btn-primary"
-                                  style={{ fontSize: "0.8rem", padding: "6px 12px" }}
-                                  disabled={isSaving}
-                                  onClick={async () => {
-                                    setIsSaving(true);
-                                    const defaultTitle = `Analyseergebnis vom ${new Date(res.createdAt).toLocaleString("de-CH")}`;
-                                    const success = await saveAnalysisResult({
-                                      caseId,
-                                      documentId: res.documentId,
-                                      analysisResultId: res.id,
-                                      title: saveTitle.trim() || defaultTitle,
-                                      note: saveNote.trim() || undefined,
-                                      resultText: res.resultText,
-                                      prompt: res.prompt,
-                                      provider: res.provider,
-                                      model: res.model
-                                    });
-                                    setIsSaving(false);
-                                    if (success) {
-                                      setSaveTitle("");
-                                      setSaveNote("");
-                                    }
-                                  }}
-                                >
-                                  {isSaving ? "Wird gespeichert..." : "Speichern"}
-                                </button>
-                                <button
-                                  type="button"
-                                  className="btn-secondary"
-                                  style={{ fontSize: "0.8rem", padding: "6px 12px" }}
-                                  disabled={isSaving}
-                                  onClick={() => {
-                                    setSaveTitle(`Analyseergebnis vom ${new Date(res.createdAt).toLocaleString("de-CH")}`);
-                                    setSaveNote("");
-                                  }}
-                                >
-                                  Zurücksetzen
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Prompt preview */}
-                        <div style={{ 
-                          fontSize: "0.8rem", 
-                          color: "var(--text-muted)", 
-                          backgroundColor: "#f8f9fa", 
-                          padding: "8px 12px", 
-                          borderRadius: "4px", 
-                          borderLeft: "3px solid #dee2e6",
-                          marginBottom: "12px",
-                          fontStyle: "italic" 
-                        }}>
-                          <strong>Verwendeter Prompt:</strong> {res.prompt}
-                        </div>
-
-                        {/* KI Result Text */}
-                        <div style={{ 
-                          fontSize: "0.9rem", 
-                          lineHeight: "1.6", 
-                          whiteSpace: "pre-wrap", 
-                          color: "var(--text-color)",
-                          marginBottom: "15px"
-                        }}>
-                          {res.resultText}
-                        </div>
-                      </div>
-                    )}
+                      <option value="google">Google Gemini</option>
+                      <option value="openai">OpenAI</option>
+                    </select>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
 
-        {/* Section 4: Saved Results */}
-        <div className="card" style={{ display: "flex", flexDirection: "column", gridColumn: "span 2", borderTop: "4px solid var(--primary-color)" }}>
-          <h2 style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", margin: "0 0 15px 0" }}>
-            Gespeicherte Ergebnisse
-            <span style={{ fontSize: "0.75rem", backgroundColor: "var(--bg-color)", padding: "4px 8px", borderRadius: "12px", color: "var(--text-muted)", fontWeight: "normal" }}>Momentaufnahmen ({savedResults.length})</span>
-          </h2>
-
-          {savedResults.length > 0 && (
-            <div style={{ 
-              fontSize: "0.85rem", 
-              color: "#475569", 
-              backgroundColor: "#f8fafc", 
-              padding: "12px 15px", 
-              borderRadius: "6px", 
-              border: "1px solid #cbd5e1", 
-              marginBottom: "15px",
-              lineHeight: "1.4"
-            }}>
-              ℹ️ <strong>Momentaufnahmen:</strong> Diese Einträge sind dauerhaft gespeicherte Zwischenstände. Sie bleiben unverändert als Abbild erhalten, selbst wenn das ursprüngliche Dokument oder die ursprüngliche Analyse gelöscht wird.
-            </div>
-          )}
-          
-          {savedResults.length === 0 ? (
-            <div className="empty-state" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minHeight: "150px" }}>
-              Noch keine gespeicherten Ergebnisse vorhanden.
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-              {savedResults.map((savedRes) => {
-                const doc = caseDocs.find((d) => d.id === savedRes.documentId);
-                const isExpanded = expandedSavedResultId === savedRes.id;
-                
-                return (
-                  <div key={savedRes.id} style={{ border: "1px solid var(--border-color)", borderRadius: "6px", overflow: "hidden" }}>
-                    {/* Collapsible Header */}
-                    <div 
-                      onClick={() => setExpandedSavedResultId(isExpanded ? null : savedRes.id)}
-                      style={{ 
-                        padding: "12px 15px", 
-                        backgroundColor: "var(--bg-color)", 
-                        cursor: "pointer", 
-                        display: "flex", 
-                        justifyContent: "space-between", 
-                        alignItems: "center",
-                        borderBottom: isExpanded ? "1px solid var(--border-color)" : "none"
-                      }}
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="modelSelect" style={{ fontWeight: "600" }}>Modell *</label>
+                    <select
+                      id="modelSelect"
+                      className="form-control"
+                      value={model}
+                      onChange={(e) => setModel(e.target.value)}
+                      required
+                      disabled={isAnalyzing}
+                      style={{ backgroundColor: "#fff" }}
                     >
-                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", textAlign: "left" }}>
-                        <span style={{ fontWeight: "600", fontSize: "1rem", color: "var(--text-color)" }}>
-                          {savedRes.title}
-                        </span>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", fontSize: "0.75rem", color: "var(--text-muted)", alignItems: "center" }}>
-                          <span style={{ backgroundColor: "#e2e3e5", padding: "2px 6px", borderRadius: "4px", fontWeight: "600", color: "#41464b" }}>
-                            Snapshot
+                      {provider === "google" ? (
+                        <>
+                          <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite (Standard)</option>
+                          <option value="gemini-1.5-flash">gemini-1.5-flash (Kompatibel)</option>
+                          <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                          <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                          <option value="gemini-3.1-flash">gemini-3.1-flash</option>
+                          <option value="gemini-3.1-pro">gemini-3.1-pro</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="gpt-4o-mini">gpt-4o-mini (Standard)</option>
+                          <option value="gpt-4o">gpt-4o</option>
+                          <option value="o3-mini">o3-mini</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="promptTextarea" style={{ fontWeight: "600" }}>Analyseprompt *</label>
+                  <textarea
+                    id="promptTextarea"
+                    className="form-control"
+                    value={promptText}
+                    onChange={(e) => setPromptText(e.target.value)}
+                    required
+                    disabled={isAnalyzing}
+                    rows={6}
+                    style={{ resize: "vertical", fontSize: "0.9rem", lineHeight: "1.4", minHeight: "150px" }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={isAnalyzing || !selectedDocId}
+                  style={{ width: "100%", padding: "12px", fontWeight: "600", fontSize: "1rem" }}
+                >
+                  {isAnalyzing ? "Analyse wird ausgeführt..." : "Analyse ausführen"}
+                </button>
+              </form>
+            )}
+
+            {isAnalyzing && (
+              <div style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                gap: "10px", 
+                marginTop: "15px", 
+                padding: "12px 16px", 
+                backgroundColor: "var(--info-bg)", 
+                border: "1px solid var(--info-border)", 
+                borderRadius: "6px",
+                color: "var(--info-color)",
+                fontSize: "0.9rem"
+              }}>
+                <div className="spinner"></div>
+                <span>Die KI-Analyse wird ausgeführt. Dies kann einige Sekunden dauern...</span>
+              </div>
+            )}
+
+            {/* Active Generation Result Preview */}
+            {activeAnalysisResult && (
+              <div className="card" style={{ marginTop: "25px", backgroundColor: "#f8f9fa", border: "1px solid var(--border-color)", borderLeft: "4px solid #0f5132" }}>
+                <h4 style={{ margin: "0 0 10px 0", color: "#0f5132", fontSize: "0.95rem", fontWeight: "600" }}>Aktuelles Analyseergebnis</h4>
+                <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "10px" }}>
+                  Textgrundlage wurde für die Analyse auf 20'000 Zeichen begrenzt. Sie können dieses Ergebnis dauerhaft im Tab „Ergebnisse prüfen“ abspeichern.
+                </div>
+                <div style={{ fontSize: "0.9rem", lineHeight: "1.5", whiteSpace: "pre-wrap", overflowY: "auto", maxHeight: "300px", padding: "10px", backgroundColor: "#fff", border: "1px solid #dee2e6", borderRadius: "4px" }}>
+                  {activeAnalysisResult}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab 3: Ergebnisse prüfen */}
+        {activeTab === "results" && (
+          <div className="card" style={{ display: "flex", flexDirection: "column" }}>
+            <h2 style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", margin: "0 0 20px 0" }}>
+              Ergebnisse prüfen
+              <span style={{ fontSize: "0.75rem", backgroundColor: "var(--bg-color)", padding: "4px 8px", borderRadius: "12px", color: "var(--text-muted)", fontWeight: "normal" }}>Historie ({analysisResults.length})</span>
+            </h2>
+            
+            {analysisResults.length === 0 ? (
+              <div className="empty-state" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minHeight: "150px" }}>
+                Noch keine Analyseergebnisse vorhanden. Führen Sie zuerst eine Analyse im Tab „Analyse ausführen“ durch.
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+                {analysisResults.map((res) => {
+                  const doc = caseDocs.find((d) => d.id === res.documentId);
+                  const isExpanded = expandedResultId === res.id;
+                  const isAlreadySaved = savedResults.some(r => r.analysisResultId === res.id);
+                  
+                  return (
+                    <div key={res.id} style={{ border: "1px solid var(--border-color)", borderRadius: "8px", overflow: "hidden", backgroundColor: "#ffffff" }}>
+                      {/* Collapsible Header */}
+                      <div 
+                        onClick={() => {
+                          if (isExpanded) {
+                            setExpandedResultId(null);
+                            setSaveTitle("");
+                            setSaveNote("");
+                          } else {
+                            setExpandedResultId(res.id);
+                            setSaveTitle(`Analyseergebnis vom ${new Date(res.createdAt).toLocaleString("de-CH")}`);
+                            setSaveNote("");
+                          }
+                        }}
+                        style={{ 
+                          padding: "14px 18px", 
+                          backgroundColor: "#f8fafc", 
+                          cursor: "pointer", 
+                          display: "flex", 
+                          justifyContent: "space-between", 
+                          alignItems: "center",
+                          borderBottom: isExpanded ? "1px solid var(--border-color)" : "none"
+                        }}
+                      >
+                        <div style={{ display: "flex", flexDirection: "column", gap: "4px", textAlign: "left" }}>
+                          <span style={{ fontWeight: "600", fontSize: "0.95rem", color: "var(--primary-color)" }}>
+                            {doc ? doc.title : "Unbekanntes Dokument"}
                           </span>
-                          {savedRes.provider && savedRes.model && (
-                            <span style={{ backgroundColor: "#f8f9fa", border: "1px solid #dee2e6", padding: "1px 5px", borderRadius: "4px" }}>
-                              {savedRes.provider}: {savedRes.model}
+                          <div style={{ display: "flex", gap: "8px", fontSize: "0.75rem", color: "var(--text-muted)", alignItems: "center" }}>
+                            <span style={{ backgroundColor: "#e2e8f0", padding: "2px 6px", borderRadius: "4px", fontWeight: "600", color: "#334155" }}>
+                              {res.provider}: {res.model}
                             </span>
-                          )}
-                          <span>Gespeichert am: {new Date(savedRes.createdAt).toLocaleString("de-CH")}</span>
-                          <span>•</span>
-                          <span>
-                            Dokument: {doc ? (
-                              <strong style={{ color: "var(--text-color)", wordBreak: "break-all" }}>{doc.title} ({doc.fileName})</strong>
-                            ) : (
-                              <span style={{ fontStyle: "italic", color: "#dc3545" }}>Gelöscht (Momentaufnahme bleibt erhalten)</span>
-                            )}
-                          </span>
-                        </div>
-                      </div>
-                      <span style={{ fontSize: "0.8rem", color: "var(--primary-color)", fontWeight: "500" }}>
-                        {isExpanded ? "Ausblenden" : "Anzeigen"}
-                      </span>
-                    </div>
-
-                    {/* Result Content */}
-                    {isExpanded && (
-                      <div style={{ padding: "15px", backgroundColor: "#fff", textAlign: "left" }}>
-                        {savedRes.note && (
-                          <div style={{ 
-                            fontSize: "0.85rem", 
-                            color: "#5c636a", 
-                            backgroundColor: "#f8f9fa", 
-                            padding: "10px 15px", 
-                            borderRadius: "6px", 
-                            borderLeft: "4px solid var(--primary-color)",
-                            marginBottom: "15px" 
-                          }}>
-                            <strong>Notiz:</strong> {savedRes.note}
+                            <span>•</span>
+                            <span>{new Date(res.createdAt).toLocaleString("de-CH")}</span>
                           </div>
-                        )}
+                        </div>
+                        <span style={{ fontSize: "0.8rem", color: "var(--accent-color)", fontWeight: "600" }}>
+                          {isExpanded ? "Ausblenden" : "Anzeigen"}
+                        </span>
+                      </div>
 
-                        {savedRes.prompt && (
+                      {/* Result Content */}
+                      {isExpanded && (
+                        <div style={{ padding: "18px", backgroundColor: "#fff", textAlign: "left" }}>
+                          
+                          {/* Snapshot Action Form */}
+                          <div style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "15px", marginBottom: "15px" }}>
+                            {isAlreadySaved ? (
+                              <div style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "0.85rem", color: "#15803d", backgroundColor: "#f0fdf4", padding: "10px 15px", borderRadius: "6px", border: "1px solid #bbf7d0", textAlign: "left" }}>
+                                <span style={{ fontWeight: "bold" }}>✓ Ergebnis gespeichert</span>
+                                <span style={{ fontSize: "0.8rem", color: "#166534" }}>Dieses Analyseergebnis wurde dauerhaft als Momentaufnahme gespeichert.</span>
+                              </div>
+                            ) : (
+                              <div style={{ backgroundColor: "#f8fafc", padding: "15px", borderRadius: "6px", border: "1px solid var(--border-color)" }}>
+                                <h4 style={{ margin: "0 0 10px 0", fontSize: "0.9rem", fontWeight: "600" }}>Dieses Analyseergebnis als Momentaufnahme speichern</h4>
+                                <div className="form-group" style={{ marginBottom: "10px" }}>
+                                  <label className="form-label" style={{ fontSize: "0.8rem", fontWeight: "600" }}>Titel (optional)</label>
+                                  <input
+                                    type="text"
+                                    className="form-control"
+                                    value={saveTitle}
+                                    onChange={(e) => setSaveTitle(e.target.value)}
+                                    placeholder={`z.B. Analyseergebnis vom ${new Date(res.createdAt).toLocaleString("de-CH")}`}
+                                    style={{ fontSize: "0.85rem", padding: "6px 10px" }}
+                                    disabled={isSaving}
+                                  />
+                                </div>
+                                <div className="form-group" style={{ marginBottom: "12px" }}>
+                                  <label className="form-label" style={{ fontSize: "0.8rem", fontWeight: "600" }}>Notiz (optional)</label>
+                                  <textarea
+                                    className="form-control"
+                                    value={saveNote}
+                                    onChange={(e) => setSaveNote(e.target.value)}
+                                    placeholder="z.B. Relevante Unklarheiten zur vertraglichen Haftung"
+                                    rows={2}
+                                    style={{ fontSize: "0.85rem", padding: "6px 10px", resize: "vertical" }}
+                                    disabled={isSaving}
+                                  />
+                                </div>
+                                <div style={{ display: "flex", gap: "8px" }}>
+                                  <button
+                                    type="button"
+                                    className="btn-primary"
+                                    style={{ fontSize: "0.8rem", padding: "6px 12px" }}
+                                    disabled={isSaving}
+                                    onClick={async () => {
+                                      setIsSaving(true);
+                                      const defaultTitle = `Analyseergebnis vom ${new Date(res.createdAt).toLocaleString("de-CH")}`;
+                                      const success = await saveAnalysisResult({
+                                        caseId,
+                                        documentId: res.documentId,
+                                        analysisResultId: res.id,
+                                        title: saveTitle.trim() || defaultTitle,
+                                        note: saveNote.trim() || undefined,
+                                        resultText: res.resultText,
+                                        prompt: res.prompt,
+                                        provider: res.provider,
+                                        model: res.model
+                                      });
+                                      setIsSaving(false);
+                                      if (success) {
+                                        setSaveTitle("");
+                                        setSaveNote("");
+                                      }
+                                    }}
+                                  >
+                                    {isSaving ? "Wird gespeichert..." : "Speichern"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn-secondary"
+                                    style={{ fontSize: "0.8rem", padding: "6px 12px" }}
+                                    disabled={isSaving}
+                                    onClick={() => {
+                                      setSaveTitle(`Analyseergebnis vom ${new Date(res.createdAt).toLocaleString("de-CH")}`);
+                                      setSaveNote("");
+                                    }}
+                                  >
+                                    Zurücksetzen
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Prompt preview */}
                           <div style={{ 
                             fontSize: "0.8rem", 
                             color: "var(--text-muted)", 
-                            backgroundColor: "#f8f9fa", 
-                            padding: "8px 12px", 
-                            borderRadius: "4px", 
-                            borderLeft: "3px solid #dee2e6",
+                            backgroundColor: "#f8fafc", 
+                            padding: "10px 12px", 
+                            borderRadius: "6px", 
+                            borderLeft: "3px solid #cbd5e1",
                             marginBottom: "15px",
                             fontStyle: "italic" 
                           }}>
-                            <strong>Verwendeter Prompt:</strong> {savedRes.prompt}
+                            <strong>Verwendeter Prompt:</strong> {res.prompt}
                           </div>
-                        )}
 
-                        {/* Snapshot Result Text */}
-                        <div style={{ 
-                          fontSize: "0.95rem", 
-                          lineHeight: "1.6", 
-                          whiteSpace: "pre-wrap", 
-                          color: "var(--text-color)",
-                          backgroundColor: "#fafafa",
-                          padding: "15px",
-                          borderRadius: "6px",
-                          border: "1px solid #eee",
-                          marginBottom: "15px",
-                          maxHeight: "350px",
-                          overflowY: "auto"
-                        }}>
-                          {savedRes.resultText}
+                          {/* KI Result Text */}
+                          <div style={{ 
+                            fontSize: "0.95rem", 
+                            lineHeight: "1.6", 
+                            whiteSpace: "pre-wrap", 
+                            color: "var(--text-color)",
+                            backgroundColor: "#ffffff",
+                            padding: "5px 0"
+                          }}>
+                            {res.resultText}
+                          </div>
                         </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
-                        {/* Inline Delete Action */}
-                        <div style={{ display: "flex", justifyContent: "flex-end", borderTop: "1px solid var(--border-color)", paddingTop: "12px" }}>
-                          {pendingDeleteSavedResultId === savedRes.id ? (
-                            <div 
-                              className="delete-confirm-box"
-                              style={{ 
-                                display: "inline-flex", 
-                                alignItems: "center",
-                                gap: "10px", 
-                                padding: "8px 12px", 
-                                backgroundColor: "rgba(220, 53, 69, 0.05)", 
-                                border: "1px solid #dc3545", 
-                                borderRadius: "6px",
-                                textAlign: "left"
-                              }}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                              }}
-                            >
-                              <span style={{ fontSize: "0.8rem", fontWeight: "600", color: "#dc3545" }}>
-                                Dieses gespeicherte Ergebnis unwiderruflich löschen?
+        {/* Tab 4: Gespeicherte Ergebnisse */}
+        {activeTab === "saved" && (
+          <div className="card" style={{ display: "flex", flexDirection: "column", borderTop: "4px solid var(--primary-color)" }}>
+            <h2 style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", margin: "0 0 20px 0" }}>
+              Gespeicherte Ergebnisse
+              <span style={{ fontSize: "0.75rem", backgroundColor: "var(--bg-color)", padding: "4px 8px", borderRadius: "12px", color: "var(--text-muted)", fontWeight: "normal" }}>Momentaufnahmen ({savedResults.length})</span>
+            </h2>
+
+            {savedResults.length > 0 && (
+              <div style={{ 
+                fontSize: "0.85rem", 
+                color: "#475569", 
+                backgroundColor: "#f8fafc", 
+                padding: "12px 15px", 
+                borderRadius: "6px", 
+                border: "1px solid #cbd5e1", 
+                marginBottom: "20px",
+                lineHeight: "1.4"
+              }}>
+                ℹ️ <strong>Momentaufnahmen:</strong> Diese Einträge sind dauerhaft gespeicherte Zwischenstände. Sie bleiben unverändert als Abbild erhalten, selbst wenn das ursprüngliche Dokument oder die ursprüngliche Analyse gelöscht wird.
+              </div>
+            )}
+            
+            {savedResults.length === 0 ? (
+              <div className="empty-state" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minHeight: "150px" }}>
+                Noch keine gespeicherten Ergebnisse vorhanden. Sie können ein Analyseergebnis im Tab „Ergebnisse prüfen“ abspeichern.
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+                {savedResults.map((savedRes) => {
+                  const doc = caseDocs.find((d) => d.id === savedRes.documentId);
+                  const isExpanded = expandedSavedResultId === savedRes.id;
+                  
+                  return (
+                    <div key={savedRes.id} style={{ border: "1px solid var(--border-color)", borderRadius: "8px", overflow: "hidden", backgroundColor: "#ffffff" }}>
+                      {/* Collapsible Header */}
+                      <div 
+                        onClick={() => setExpandedSavedResultId(isExpanded ? null : savedRes.id)}
+                        style={{ 
+                          padding: "14px 18px", 
+                          backgroundColor: "#f8fafc", 
+                          cursor: "pointer", 
+                          display: "flex", 
+                          justifyContent: "space-between", 
+                          alignItems: "center",
+                          borderBottom: isExpanded ? "1px solid var(--border-color)" : "none"
+                        }}
+                      >
+                        <div style={{ display: "flex", flexDirection: "column", gap: "4px", textAlign: "left" }}>
+                          <span style={{ fontWeight: "600", fontSize: "1rem", color: "var(--primary-color)" }}>
+                            {savedRes.title}
+                          </span>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", fontSize: "0.75rem", color: "var(--text-muted)", alignItems: "center" }}>
+                            <span style={{ backgroundColor: "#e2e8f0", padding: "2px 6px", borderRadius: "4px", fontWeight: "600", color: "#334155" }}>
+                              Snapshot
+                            </span>
+                            {savedRes.provider && savedRes.model && (
+                              <span style={{ backgroundColor: "#ffffff", border: "1px solid #dee2e6", padding: "1px 5px", borderRadius: "4px" }}>
+                                {savedRes.provider}: {savedRes.model}
                               </span>
-                              <div style={{ display: "flex", gap: "6px" }}>
-                                <button 
-                                  type="button" 
-                                  className="btn-danger" 
-                                  style={{ padding: "4px 10px", fontSize: "0.8rem", cursor: "pointer" }}
-                                  onClick={(e) => handleConfirmDeleteSavedResult(e, savedRes.id)}
-                                >
-                                  Ja, löschen
-                                </button>
-                                <button 
-                                  type="button" 
-                                  className="btn-secondary" 
-                                  style={{ padding: "4px 10px", fontSize: "0.8rem", cursor: "pointer" }}
-                                  onClick={(e) => handleCancelDeleteSavedResult(e)}
-                                >
-                                  Abbrechen
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <button 
-                              type="button"
-                              className="btn-danger" 
-                              style={{ padding: "6px 12px", fontSize: "0.8rem" }}
-                              onClick={(e) => handleDeleteSavedResultClick(e, savedRes.id)}
-                            >
-                              Ergebnis löschen
-                            </button>
-                          )}
+                            )}
+                            <span>Gespeichert am: {new Date(savedRes.createdAt).toLocaleString("de-CH")}</span>
+                            <span>•</span>
+                            <span>
+                              Dokument: {doc ? (
+                                <strong style={{ color: "var(--text-color)", wordBreak: "break-all" }}>{doc.title} ({doc.fileName})</strong>
+                              ) : (
+                                <span style={{ fontStyle: "italic", color: "var(--danger-color)" }}>Gelöscht (Momentaufnahme bleibt erhalten)</span>
+                              )}
+                            </span>
+                          </div>
                         </div>
+                        <span style={{ fontSize: "0.8rem", color: "var(--accent-color)", fontWeight: "600" }}>
+                          {isExpanded ? "Ausblenden" : "Anzeigen"}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+
+                      {/* Result Content */}
+                      {isExpanded && (
+                        <div style={{ padding: "18px", backgroundColor: "#fff", textAlign: "left" }}>
+                          {savedRes.note && (
+                            <div style={{ 
+                              fontSize: "0.85rem", 
+                              color: "#475569", 
+                              backgroundColor: "#f8fafc", 
+                              padding: "10px 15px", 
+                              borderRadius: "6px", 
+                              borderLeft: "4px solid var(--primary-color)",
+                              marginBottom: "15px" 
+                            }}>
+                              <strong>Notiz:</strong> {savedRes.note}
+                            </div>
+                          )}
+
+                          {savedRes.prompt && (
+                            <div style={{ 
+                              fontSize: "0.8rem", 
+                              color: "var(--text-muted)", 
+                              backgroundColor: "#f8fafc", 
+                              padding: "8px 12px", 
+                              borderRadius: "6px", 
+                              borderLeft: "3px solid #cbd5e1",
+                              marginBottom: "15px",
+                              fontStyle: "italic" 
+                            }}>
+                              <strong>Verwendeter Prompt:</strong> {savedRes.prompt}
+                            </div>
+                          )}
+
+                          {/* Snapshot Result Text */}
+                          <div style={{ 
+                            fontSize: "0.95rem", 
+                            lineHeight: "1.6", 
+                            whiteSpace: "pre-wrap", 
+                            color: "var(--text-color)",
+                            backgroundColor: "#fafafa",
+                            padding: "15px",
+                            borderRadius: "6px",
+                            border: "1px solid #e2e8f0",
+                            marginBottom: "15px",
+                            maxHeight: "350px",
+                            overflowY: "auto"
+                          }}>
+                            {savedRes.resultText}
+                          </div>
+
+                          {/* Inline Delete Action */}
+                          <div style={{ display: "flex", justifyContent: "flex-end", borderTop: "1px solid var(--border-color)", paddingTop: "12px" }}>
+                            {pendingDeleteSavedResultId === savedRes.id ? (
+                              <div 
+                                className="delete-confirm-box"
+                                style={{ 
+                                  display: "inline-flex", 
+                                  alignItems: "center",
+                                  gap: "10px", 
+                                  padding: "8px 12px", 
+                                  backgroundColor: "var(--danger-bg)", 
+                                  border: "1px solid var(--danger-border)", 
+                                  borderRadius: "6px",
+                                  textAlign: "left"
+                                }}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }}
+                              >
+                                <span style={{ fontSize: "0.8rem", fontWeight: "600", color: "var(--danger-color)" }}>
+                                  Dieses gespeicherte Ergebnis unwiderruflich löschen?
+                                </span>
+                                <div style={{ display: "flex", gap: "6px" }}>
+                                  <button 
+                                    type="button" 
+                                    className="btn-danger" 
+                                    style={{ padding: "4px 10px", fontSize: "0.8rem", cursor: "pointer" }}
+                                    onClick={(e) => handleConfirmDeleteSavedResult(e, savedRes.id)}
+                                  >
+                                    Ja, löschen
+                                  </button>
+                                  <button 
+                                    type="button" 
+                                    className="btn-secondary" 
+                                    style={{ padding: "4px 10px", fontSize: "0.8rem", cursor: "pointer" }}
+                                    onClick={(e) => handleCancelDeleteSavedResult(e)}
+                                  >
+                                    Abbrechen
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button 
+                                type="button"
+                                className="btn-danger" 
+                                style={{ padding: "6px 12px", fontSize: "0.8rem" }}
+                                onClick={(e) => handleDeleteSavedResultClick(e, savedRes.id)}
+                              >
+                                Ergebnis löschen
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Preview Modal Overlay */}
