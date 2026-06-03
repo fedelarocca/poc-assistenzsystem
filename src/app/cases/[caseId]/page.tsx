@@ -59,7 +59,6 @@ export default function CaseDetailPage() {
   const [expandedResultId, setExpandedResultId] = useState<string | null>(null);
 
   // Saved Results States
-  const [savingResultId, setSavingResultId] = useState<string | null>(null);
   const [saveTitle, setSaveTitle] = useState("");
   const [saveNote, setSaveNote] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -211,6 +210,8 @@ export default function CaseDetailPage() {
     if (res) {
       setActiveAnalysisResult(res.resultText);
       setExpandedResultId(res.id);
+      setSaveTitle(`Analyseergebnis vom ${new Date(res.createdAt).toLocaleString("de-CH")}`);
+      setSaveNote("");
     }
   };
 
@@ -671,7 +672,17 @@ export default function CaseDetailPage() {
                   <div key={res.id} style={{ border: "1px solid var(--border-color)", borderRadius: "6px", overflow: "hidden" }}>
                     {/* Collapsible Header */}
                     <div 
-                      onClick={() => setExpandedResultId(isExpanded ? null : res.id)}
+                      onClick={() => {
+                        if (isExpanded) {
+                          setExpandedResultId(null);
+                          setSaveTitle("");
+                          setSaveNote("");
+                        } else {
+                          setExpandedResultId(res.id);
+                          setSaveTitle(`Analyseergebnis vom ${new Date(res.createdAt).toLocaleString("de-CH")}`);
+                          setSaveNote("");
+                        }
+                      }}
                       style={{ 
                         padding: "10px 15px", 
                         backgroundColor: "var(--bg-color)", 
@@ -701,15 +712,16 @@ export default function CaseDetailPage() {
                     {/* Result Content */}
                     {isExpanded && (
                       <div style={{ padding: "15px", backgroundColor: "#fff", textAlign: "left" }}>
-                        {/* Save Action Form or Button (Repositioned to the top of expanded content) */}
+                        {/* Save Action Form or Status (Form is directly visible when not saved) */}
                         <div style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "12px", marginBottom: "12px" }}>
                           {isAlreadySaved ? (
-                            <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "0.85rem", color: "#198754", backgroundColor: "#e8f5e9", padding: "6px 12px", borderRadius: "4px", border: "1px solid #c3e6cb" }}>
-                              <span style={{ fontWeight: "bold" }}>✓</span> Bereits unter „Gespeicherte Ergebnisse“ gesichert
+                            <div style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "0.85rem", color: "#198754", backgroundColor: "#e8f5e9", padding: "10px 15px", borderRadius: "6px", border: "1px solid #c3e6cb", textAlign: "left" }}>
+                              <span style={{ fontWeight: "bold" }}>✓ Ergebnis gespeichert</span>
+                              <span style={{ fontSize: "0.8rem", color: "#146c43" }}>Dieses Analyseergebnis wurde als Momentaufnahme gespeichert.</span>
                             </div>
-                          ) : savingResultId === res.id ? (
+                          ) : (
                             <div style={{ backgroundColor: "var(--bg-color)", padding: "12px", borderRadius: "6px", border: "1px solid var(--border-color)" }}>
-                              <h4 style={{ margin: "0 0 10px 0", fontSize: "0.9rem", fontWeight: "600" }}>Ergebnis speichern</h4>
+                              <h4 style={{ margin: "0 0 10px 0", fontSize: "0.9rem", fontWeight: "600" }}>Dieses Analyseergebnis speichern</h4>
                               <div className="form-group" style={{ marginBottom: "10px" }}>
                                 <label className="form-label" style={{ fontSize: "0.8rem", fontWeight: "600" }}>Titel (optional)</label>
                                 <input
@@ -756,7 +768,6 @@ export default function CaseDetailPage() {
                                     });
                                     setIsSaving(false);
                                     if (success) {
-                                      setSavingResultId(null);
                                       setSaveTitle("");
                                       setSaveNote("");
                                     }
@@ -770,28 +781,14 @@ export default function CaseDetailPage() {
                                   style={{ fontSize: "0.8rem", padding: "6px 12px" }}
                                   disabled={isSaving}
                                   onClick={() => {
-                                    setSavingResultId(null);
-                                    setSaveTitle("");
+                                    setSaveTitle(`Analyseergebnis vom ${new Date(res.createdAt).toLocaleString("de-CH")}`);
                                     setSaveNote("");
                                   }}
                                 >
-                                  Abbrechen
+                                  Zurücksetzen
                                 </button>
                               </div>
                             </div>
-                          ) : (
-                            <button
-                              type="button"
-                              className="btn-primary"
-                              style={{ fontSize: "0.85rem", padding: "6px 12px" }}
-                              onClick={() => {
-                                setSavingResultId(res.id);
-                                setSaveTitle("");
-                                setSaveNote("");
-                              }}
-                            >
-                              Ergebnis speichern
-                            </button>
                           )}
                         </div>
 

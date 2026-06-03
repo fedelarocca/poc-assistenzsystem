@@ -2,25 +2,25 @@
 
 ## Aktueller Stand
 
-Iteration I-09 wurde erfolgreich gemäss Plan und inklusive der Layout-Korrekturen für lange KI-Analysetexte umgesetzt. Die Funktion „Gespeicherte Ergebnisse“ ist vollumfänglich in der Next.js-Anwendung integriert, typgeprüft und validiert. Die Datenbank-Migration für die Tabelle `saved_results` liegt als Datei vor.
+Iteration I-09 wurde erfolgreich und inklusive der UX-seitigen Vereinfachung des Speicher-Workflows umgesetzt. Die Funktion „Gespeicherte Ergebnisse“ ist vollumfänglich in der Next.js-Anwendung integriert, typgeprüft und validiert. Die Datenbank-Migration für die Tabelle `saved_results` liegt als Datei vor.
 
 ### Wichtigste Meilensteine:
-1. **Datenbank-Tabelle & RLS-Policies**: Die SQL-Migration für die Tabelle `saved_results` wurde als Skript `supabase/migrations/20260603120000_create_saved_results.sql` angelegt. Diese enthält RLS-Aktivierung und anonyme Richtlinien (anon SELECT, INSERT, DELETE) ohne Bearbeitungsrechte (kein UPDATE).
+1. **Datenbank-Tabelle & RLS-Policies**: Die SQL-Migration für die Tabelle `saved_results` wurde als Skript `supabase/migrations/20260603120000_create_saved_results.sql` angelegt. RLS ist aktiv, anonyme Richtlinien (anon SELECT, INSERT, DELETE) sind eingerichtet.
 2. **Snapshot-Konzept**:
    - Die Fremdschlüssel auf Dokumente und Analysehistorie sind mit `ON DELETE SET NULL` konfiguriert.
-   - Der Inhalt (`result_text`, `prompt`, `provider`, `model`) wird direkt als redundante Kopie in der Tabelle abgelegt, damit gespeicherte Ergebnisse auch nach Löschung von Originaldokumenten intakt bleiben.
+   - Der Inhalt (`result_text`, `prompt`, `provider`, `model`) wird direkt als Snapshot in der Tabelle abgelegt, damit gespeicherte Ergebnisse auch nach Löschung von Originalressourcen intakt bleiben.
 3. **Daten-Typen und Hooks**:
    - `src/types/saved-result.ts` definiert das Model `SavedResult`.
-   - `src/hooks/useSavedResults.ts` kapselt die Abfragen und Operationen (`fetchSavedResultsByCaseId`, `saveAnalysisResult`, `deleteSavedResult`) mit Supabase.
-4. **UI-Bereiche in der Case-Detailseite**:
-   - Jedes KI-Ergebnis in der Historie (Section 3) verfügt über die Option „Ergebnis speichern“.
-   - **Optimierung Ergebnisse-Anzeige & Scroll-Korrektur**: Die feste Höhenbegrenzung des Listen-Containers (`max-height: 450px`, `overflow-y: auto`) wurde aufgehoben, um Clipping-Probleme bei langen Texten zu beheben. Der Bereich wächst nun natürlich mit.
-   - **Sichtbarkeit verbessert**: Die Speicheraktion („Ergebnis speichern“ bzw. das Speicherformular) wurde an das **obere Ende** des aufgeklappten Containers verlegt (direkt über den verwendeten Prompt und den Analysebericht). Der Nutzer sieht die Aktion somit sofort nach dem Aufklappen eines Ergebnisses, ohne scrollen zu müssen.
-   - Ein automatischer Standardtitel-Fallback wird vorgeschlagen.
-   - Technische Duplikatsprüfung im Client sperrt das mehrfache Speichern desselben Analyseergebnis-Eintrags.
-   - Section 4 („Gespeicherte Ergebnisse“) zeigt die Liste aller Snapshots mit Metadaten, Notizen, collapsible Inhalt und zweistufigem Inline-Löschen (ohne `window.confirm`).
+   - `src/hooks/useSavedResults.ts` kapselt die Abfragen und Operationen mit Supabase.
+4. **UX-Speicher-Workflow**:
+   - Das Speicherformular ist im aufgeklappten Zustand eines Analyseergebnisses **direkt und ohne vorgeschalteten Klick** sichtbar.
+   - Der Titel wird automatisch mit einem sinnvollen Vorschlag (`Analyseergebnis vom [Datum/Uhrzeit]`) vorausgefüllt.
+   - Die Notiz ist optional.
+   - Die Schaltfläche „Zurücksetzen“ setzt den Titel wieder auf den Standardvorschlag zurück und leert die Notiz.
+   - Nach erfolgreichem Speichern wird das Formular ausgeblendet und durch ein klares Status-Feedback (*„✓ Ergebnis gespeichert“* / *„Dieses Analyseergebnis wurde als Momentaufnahme gespeichert.“*) ersetzt.
+   - Section 4 („Gespeicherte Ergebnisse“) zeigt alle persistenten Snapshots mit collapsible Inhalten, Metadaten und zweistufigem Inline-Löschen (ohne `window.confirm`).
 5. **Erfolgreicher Build**:
-   - Der Next.js-Produktionsbuild (`npm run build`) kompiliert ohne Fehler und bestätigt die vollständige Typensicherheit.
+   - Der Next.js-Produktionsbuild (`npm run build`) kompiliert fehlerfrei und bestätigt die vollständige Typensicherheit.
 
 ---
 
@@ -34,8 +34,8 @@ Iteration I-09 wurde erfolgreich gemäss Plan und inklusive der Layout-Korrektur
 - **Iteration I-09 (Ergebnisse speichern)**:
   - SQL-Migration für `saved_results`.
   - TypeScript-Interface und Custom React Hook `useSavedResults.ts`.
-  - UI-Workspace-Kopplung (Speicher-Dialog, Duplikatsprüfung, Section 4 Snapshot-Liste, Inline-Löschen).
-  - Korrektur der `max-height`/Overflow-Probleme und Optimierung der Button-Sichtbarkeit in der Historie.
+  - UX-Vereinfachung des Speicher-Workflows (Formular direkt sichtbar, Standardtitel vorbelegt, Zurücksetzen-Aktion, Statusfeedback nach Speichern).
+  - Korrektur der `max-height`/Overflow-Probleme in der Historie.
   - Erfolgreiche Durchführung des `npm run build` Validierungstests.
 
 ---
