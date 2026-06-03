@@ -8,6 +8,7 @@ import { useDocuments } from "../../../hooks/useDocuments";
 import { isSupabaseConfigured } from "../../../lib/supabase";
 
 import { useAnalysis } from "../../../hooks/useAnalysis";
+import { useSavedResults } from "../../../hooks/useSavedResults";
 
 export default function CaseDetailPage() {
   const params = useParams();
@@ -29,6 +30,14 @@ export default function CaseDetailPage() {
     runAnalysis
   } = useAnalysis(caseId);
 
+  const {
+    savedResults,
+    isLoaded: isSavedResultsLoaded,
+    error: savedResultsError,
+    saveAnalysisResult,
+    deleteSavedResult
+  } = useSavedResults(caseId);
+
   const [isAddingDoc, setIsAddingDoc] = useState(false);
   const [docTitle, setDocTitle] = useState("");
   const [docDescription, setDocDescription] = useState("");
@@ -48,11 +57,19 @@ export default function CaseDetailPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [activeAnalysisResult, setActiveAnalysisResult] = useState<string | null>(null);
   const [expandedResultId, setExpandedResultId] = useState<string | null>(null);
+
+  // Saved Results States
+  const [savingResultId, setSavingResultId] = useState<string | null>(null);
+  const [saveTitle, setSaveTitle] = useState("");
+  const [saveNote, setSaveNote] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [pendingDeleteSavedResultId, setPendingDeleteSavedResultId] = useState<string | null>(null);
+  const [expandedSavedResultId, setExpandedSavedResultId] = useState<string | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Avoid hydration mismatch by waiting for local storage to load
-  if (!isCasesLoaded || !isDocsLoaded || !isAnalysisLoaded) {
+  if (!isCasesLoaded || !isDocsLoaded || !isAnalysisLoaded || !isSavedResultsLoaded) {
     return (
       <div style={{ padding: "20px" }}>
         <h1>Analysefall Details</h1>
@@ -146,6 +163,27 @@ export default function CaseDetailPage() {
     setPendingDeleteDocId(null);
   };
 
+  const handleDeleteSavedResultClick = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPendingDeleteSavedResultId(id);
+  };
+
+  const handleConfirmDeleteSavedResult = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const success = await deleteSavedResult(id);
+    if (success) {
+      setPendingDeleteSavedResultId(null);
+    }
+  };
+
+  const handleCancelDeleteSavedResult = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPendingDeleteSavedResultId(null);
+  };
+
   const handleExtractText = async (e: React.MouseEvent, id: string) => {
     e.preventDefault();
     e.stopPropagation();
@@ -207,7 +245,7 @@ export default function CaseDetailPage() {
         </div>
       )}
 
-      {isSupabaseConfigured && (casesError || docsError || analysisError) && (
+      {isSupabaseConfigured && (casesError || docsError || analysisError || savedResultsError) && (
         <div style={{ 
           backgroundColor: "#f8d7da", 
           border: "1px solid #f5c2c7", 
@@ -216,7 +254,7 @@ export default function CaseDetailPage() {
           borderRadius: "6px", 
           marginBottom: "20px"
         }}>
-          <strong>Fehler:</strong> {casesError || docsError || analysisError}
+          <strong>Fehler:</strong> {casesError || docsError || analysisError || savedResultsError}
         </div>
       )}
 
@@ -627,6 +665,7 @@ export default function CaseDetailPage() {
               {analysisResults.map((res) => {
                 const doc = caseDocs.find((d) => d.id === res.documentId);
                 const isExpanded = expandedResultId === res.id;
+                const isAlreadySaved = savedResults.some(r => r.analysisResultId === res.id);
                 
                 return (
                   <div key={res.id} style={{ border: "1px solid var(--border-color)", borderRadius: "6px", overflow: "hidden" }}>
@@ -681,9 +720,104 @@ export default function CaseDetailPage() {
                           fontSize: "0.9rem", 
                           lineHeight: "1.6", 
                           whiteSpace: "pre-wrap", 
-                          color: "var(--text-color)" 
+                          color: "var(--text-color)",
+                          marginBottom: "15px"
                         }}>
                           {res.resultText}
+                        </div>
+
+                        {/* Save Action Form or Button */}
+                        <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: "12px", marginTop: "12px" }}>
+                          {isAlreadySaved ? (
+                            <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "0.85rem", color: "#198754", backgroundColor: "#e8f5e9", padding: "6px 12px", borderRadius: "4px", border: "1px solid #c3e6cb" }}>
+                              <span style={{ fontWeight: "bold" }}>✓</span> Bereits unter „Gespeicherte Ergebnisse“ gesichert
+                            </div>
+                          ) : savingResultId === res.id ? (
+                            <div style={{ backgroundColor: "var(--bg-color)", padding: "12px", borderRadius: "6px", border: "1px solid var(--border-color)" }}>
+                              <h4 style={{ margin: "0 0 10px 0", fontSize: "0.9rem", fontWeight: "600" }}>Ergebnis speichern</h4>
+                              <div className="form-group" style={{ marginBottom: "10px" }}>
+                                <label className="form-label" style={{ fontSize: "0.8rem", fontWeight: "600" }}>Titel (optional)</label>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  value={saveTitle}
+                                  onChange={(e) => setSaveTitle(e.target.value)}
+                                  placeholder={`z.B. Analyseergebnis vom ${new Date(res.createdAt).toLocaleString("de-CH")}`}
+                                  style={{ fontSize: "0.85rem", padding: "6px 10px" }}
+                                  disabled={isSaving}
+                                />
+                              </div>
+                              <div className="form-group" style={{ marginBottom: "12px" }}>
+                                <label className="form-label" style={{ fontSize: "0.8rem", fontWeight: "600" }}>Notiz (optional)</label>
+                                <textarea
+                                  className="form-control"
+                                  value={saveNote}
+                                  onChange={(e) => setSaveNote(e.target.value)}
+                                  placeholder="z.B. Relevante Unklarheiten zur vertraglichen Haftung"
+                                  rows={2}
+                                  style={{ fontSize: "0.85rem", padding: "6px 10px", resize: "vertical" }}
+                                  disabled={isSaving}
+                                />
+                              </div>
+                              <div style={{ display: "flex", gap: "8px" }}>
+                                <button
+                                  type="button"
+                                  className="btn-primary"
+                                  style={{ fontSize: "0.8rem", padding: "6px 12px" }}
+                                  disabled={isSaving}
+                                  onClick={async () => {
+                                    setIsSaving(true);
+                                    const defaultTitle = `Analyseergebnis vom ${new Date(res.createdAt).toLocaleString("de-CH")}`;
+                                    const success = await saveAnalysisResult({
+                                      caseId,
+                                      documentId: res.documentId,
+                                      analysisResultId: res.id,
+                                      title: saveTitle.trim() || defaultTitle,
+                                      note: saveNote.trim() || undefined,
+                                      resultText: res.resultText,
+                                      prompt: res.prompt,
+                                      provider: res.provider,
+                                      model: res.model
+                                    });
+                                    setIsSaving(false);
+                                    if (success) {
+                                      setSavingResultId(null);
+                                      setSaveTitle("");
+                                      setSaveNote("");
+                                    }
+                                  }}
+                                >
+                                  {isSaving ? "Wird gespeichert..." : "Speichern"}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn-secondary"
+                                  style={{ fontSize: "0.8rem", padding: "6px 12px" }}
+                                  disabled={isSaving}
+                                  onClick={() => {
+                                    setSavingResultId(null);
+                                    setSaveTitle("");
+                                    setSaveNote("");
+                                  }}
+                                >
+                                  Abbrechen
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn-primary"
+                              style={{ fontSize: "0.85rem", padding: "6px 12px" }}
+                              onClick={() => {
+                                setSavingResultId(res.id);
+                                setSaveTitle("");
+                                setSaveNote("");
+                              }}
+                            >
+                              Ergebnis speichern
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}
@@ -694,15 +828,174 @@ export default function CaseDetailPage() {
           )}
         </div>
 
-        {/* Section 4: Saved Results - Placeholder */}
+        {/* Section 4: Saved Results */}
         <div className="card" style={{ display: "flex", flexDirection: "column", gridColumn: "span 2" }}>
-          <h2 style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h2 style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", margin: "0 0 15px 0" }}>
             Gespeicherte Ergebnisse
-            <span style={{ fontSize: "0.75rem", backgroundColor: "var(--bg-color)", padding: "4px 8px", borderRadius: "12px", color: "var(--text-muted)", fontWeight: "normal" }}>Bereit für I-09</span>
+            <span style={{ fontSize: "0.75rem", backgroundColor: "var(--bg-color)", padding: "4px 8px", borderRadius: "12px", color: "var(--text-muted)", fontWeight: "normal" }}>Momentaufnahmen ({savedResults.length})</span>
           </h2>
-          <div className="empty-state" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", margin: "10px 0" }}>
-            Noch keine gespeicherten Ergebnisse vorhanden.
-          </div>
+          
+          {savedResults.length === 0 ? (
+            <div className="empty-state" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minHeight: "150px" }}>
+              Noch keine gespeicherten Ergebnisse vorhanden.
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+              {savedResults.map((savedRes) => {
+                const doc = caseDocs.find((d) => d.id === savedRes.documentId);
+                const isExpanded = expandedSavedResultId === savedRes.id;
+                
+                return (
+                  <div key={savedRes.id} style={{ border: "1px solid var(--border-color)", borderRadius: "6px", overflow: "hidden" }}>
+                    {/* Collapsible Header */}
+                    <div 
+                      onClick={() => setExpandedSavedResultId(isExpanded ? null : savedRes.id)}
+                      style={{ 
+                        padding: "12px 15px", 
+                        backgroundColor: "var(--bg-color)", 
+                        cursor: "pointer", 
+                        display: "flex", 
+                        justifyContent: "space-between", 
+                        alignItems: "center",
+                        borderBottom: isExpanded ? "1px solid var(--border-color)" : "none"
+                      }}
+                    >
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", textAlign: "left" }}>
+                        <span style={{ fontWeight: "600", fontSize: "1rem", color: "var(--text-color)" }}>
+                          {savedRes.title}
+                        </span>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", fontSize: "0.75rem", color: "var(--text-muted)", alignItems: "center" }}>
+                          <span style={{ backgroundColor: "#e2e3e5", padding: "2px 6px", borderRadius: "4px", fontWeight: "600", color: "#41464b" }}>
+                            Snapshot
+                          </span>
+                          {savedRes.provider && savedRes.model && (
+                            <span style={{ backgroundColor: "#f8f9fa", border: "1px solid #dee2e6", padding: "1px 5px", borderRadius: "4px" }}>
+                              {savedRes.provider}: {savedRes.model}
+                            </span>
+                          )}
+                          <span>Gespeichert am: {new Date(savedRes.createdAt).toLocaleString("de-CH")}</span>
+                          <span>•</span>
+                          <span>
+                            Dokument: {doc ? (
+                              <strong style={{ color: "var(--text-color)" }}>{doc.title} ({doc.fileName})</strong>
+                            ) : (
+                              <span style={{ fontStyle: "italic", color: "#dc3545" }}>Gelöscht (Momentaufnahme bleibt erhalten)</span>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: "0.8rem", color: "var(--primary-color)", fontWeight: "500" }}>
+                        {isExpanded ? "Ausblenden" : "Anzeigen"}
+                      </span>
+                    </div>
+
+                    {/* Result Content */}
+                    {isExpanded && (
+                      <div style={{ padding: "15px", backgroundColor: "#fff", textAlign: "left" }}>
+                        {savedRes.note && (
+                          <div style={{ 
+                            fontSize: "0.85rem", 
+                            color: "#5c636a", 
+                            backgroundColor: "#f8f9fa", 
+                            padding: "10px 15px", 
+                            borderRadius: "6px", 
+                            borderLeft: "4px solid var(--primary-color)",
+                            marginBottom: "15px" 
+                          }}>
+                            <strong>Notiz:</strong> {savedRes.note}
+                          </div>
+                        )}
+
+                        {savedRes.prompt && (
+                          <div style={{ 
+                            fontSize: "0.8rem", 
+                            color: "var(--text-muted)", 
+                            backgroundColor: "#f8f9fa", 
+                            padding: "8px 12px", 
+                            borderRadius: "4px", 
+                            borderLeft: "3px solid #dee2e6",
+                            marginBottom: "15px",
+                            fontStyle: "italic" 
+                          }}>
+                            <strong>Verwendeter Prompt:</strong> {savedRes.prompt}
+                          </div>
+                        )}
+
+                        {/* Snapshot Result Text */}
+                        <div style={{ 
+                          fontSize: "0.95rem", 
+                          lineHeight: "1.6", 
+                          whiteSpace: "pre-wrap", 
+                          color: "var(--text-color)",
+                          backgroundColor: "#fafafa",
+                          padding: "15px",
+                          borderRadius: "6px",
+                          border: "1px solid #eee",
+                          marginBottom: "15px"
+                        }}>
+                          {savedRes.resultText}
+                        </div>
+
+                        {/* Inline Delete Action */}
+                        <div style={{ display: "flex", justifyContent: "flex-end", borderTop: "1px solid var(--border-color)", paddingTop: "12px" }}>
+                          {pendingDeleteSavedResultId === savedRes.id ? (
+                            <div 
+                              className="delete-confirm-box"
+                              style={{ 
+                                display: "inline-flex", 
+                                alignItems: "center",
+                                gap: "10px", 
+                                padding: "8px 12px", 
+                                backgroundColor: "rgba(220, 53, 69, 0.05)", 
+                                border: "1px solid #dc3545", 
+                                borderRadius: "6px",
+                                textAlign: "left"
+                              }}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }}
+                            >
+                              <span style={{ fontSize: "0.8rem", fontWeight: "600", color: "#dc3545" }}>
+                                Dieses gespeicherte Ergebnis unwiderruflich löschen?
+                              </span>
+                              <div style={{ display: "flex", gap: "6px" }}>
+                                <button 
+                                  type="button" 
+                                  className="btn-danger" 
+                                  style={{ padding: "4px 10px", fontSize: "0.8rem", cursor: "pointer" }}
+                                  onClick={(e) => handleConfirmDeleteSavedResult(e, savedRes.id)}
+                                >
+                                  Ja, löschen
+                                </button>
+                                <button 
+                                  type="button" 
+                                  className="btn-secondary" 
+                                  style={{ padding: "4px 10px", fontSize: "0.8rem", cursor: "pointer" }}
+                                  onClick={(e) => handleCancelDeleteSavedResult(e)}
+                                >
+                                  Abbrechen
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button 
+                              type="button"
+                              className="btn-danger" 
+                              style={{ padding: "6px 12px", fontSize: "0.8rem" }}
+                              onClick={(e) => handleDeleteSavedResultClick(e, savedRes.id)}
+                            >
+                              Ergebnis löschen
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
