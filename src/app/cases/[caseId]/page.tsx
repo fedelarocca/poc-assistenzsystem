@@ -661,7 +661,7 @@ export default function CaseDetailPage() {
               Noch keine Analyseergebnisse vorhanden.
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "15px", overflowY: "auto", maxHeight: "450px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
               {analysisResults.map((res) => {
                 const doc = caseDocs.find((d) => d.id === res.documentId);
                 const isExpanded = expandedResultId === res.id;
@@ -701,33 +701,8 @@ export default function CaseDetailPage() {
                     {/* Result Content */}
                     {isExpanded && (
                       <div style={{ padding: "15px", backgroundColor: "#fff", textAlign: "left" }}>
-                        {/* Prompt preview */}
-                        <div style={{ 
-                          fontSize: "0.8rem", 
-                          color: "var(--text-muted)", 
-                          backgroundColor: "#f8f9fa", 
-                          padding: "8px 12px", 
-                          borderRadius: "4px", 
-                          borderLeft: "3px solid #dee2e6",
-                          marginBottom: "12px",
-                          fontStyle: "italic" 
-                        }}>
-                          <strong>Verwendeter Prompt:</strong> {res.prompt}
-                        </div>
-
-                        {/* KI Result Text */}
-                        <div style={{ 
-                          fontSize: "0.9rem", 
-                          lineHeight: "1.6", 
-                          whiteSpace: "pre-wrap", 
-                          color: "var(--text-color)",
-                          marginBottom: "15px"
-                        }}>
-                          {res.resultText}
-                        </div>
-
-                        {/* Save Action Form or Button */}
-                        <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: "12px", marginTop: "12px" }}>
+                        {/* Save Action Form or Button (Repositioned to the top of expanded content) */}
+                        <div style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "12px", marginBottom: "12px" }}>
                           {isAlreadySaved ? (
                             <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "0.85rem", color: "#198754", backgroundColor: "#e8f5e9", padding: "6px 12px", borderRadius: "4px", border: "1px solid #c3e6cb" }}>
                               <span style={{ fontWeight: "bold" }}>✓</span> Bereits unter „Gespeicherte Ergebnisse“ gesichert
@@ -818,6 +793,31 @@ export default function CaseDetailPage() {
                               Ergebnis speichern
                             </button>
                           )}
+                        </div>
+
+                        {/* Prompt preview */}
+                        <div style={{ 
+                          fontSize: "0.8rem", 
+                          color: "var(--text-muted)", 
+                          backgroundColor: "#f8f9fa", 
+                          padding: "8px 12px", 
+                          borderRadius: "4px", 
+                          borderLeft: "3px solid #dee2e6",
+                          marginBottom: "12px",
+                          fontStyle: "italic" 
+                        }}>
+                          <strong>Verwendeter Prompt:</strong> {res.prompt}
+                        </div>
+
+                        {/* KI Result Text */}
+                        <div style={{ 
+                          fontSize: "0.9rem", 
+                          lineHeight: "1.6", 
+                          whiteSpace: "pre-wrap", 
+                          color: "var(--text-color)",
+                          marginBottom: "15px"
+                        }}>
+                          {res.resultText}
                         </div>
                       </div>
                     )}
