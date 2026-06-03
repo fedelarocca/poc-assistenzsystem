@@ -224,7 +224,7 @@ export default function CaseDetailPage() {
   };
 
   return (
-    <div className="case-detail-workspace">
+    <div className="case-detail-workspace container-constrained">
       {/* Back Link */}
       <div style={{ marginBottom: "20px" }}>
         <Link href="/cases" style={{ display: "inline-flex", alignItems: "center", color: "var(--primary-color)", fontWeight: "500" }}>
@@ -272,7 +272,7 @@ export default function CaseDetailPage() {
             <strong>Erstellt am:</strong> {new Date(currentCase.createdAt).toLocaleString("de-CH")}
           </div>
           <div>
-            <strong>Referenz-ID:</strong> <code style={{ backgroundColor: "var(--bg-color)", padding: "2px 6px", borderRadius: "4px", fontSize: "0.8rem" }}>{currentCase.id}</code>
+            <strong>Referenz-ID:</strong> <code className="technical-path" style={{ backgroundColor: "var(--bg-color)", padding: "2px 6px", borderRadius: "4px" }}>{currentCase.id}</code>
           </div>
         </div>
       </div>
@@ -398,7 +398,7 @@ export default function CaseDetailPage() {
                         <div style={{ fontWeight: "600" }}>{doc.title}</div>
                         {doc.description && <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "2px" }}>{doc.description}</div>}
                       </td>
-                      <td style={{ padding: "12px 5px", color: "var(--text-muted)", fontFamily: "monospace", fontSize: "0.8rem" }}>{doc.fileName}</td>
+                      <td className="technical-path" style={{ padding: "12px 5px" }}>{doc.fileName}</td>
                       <td style={{ padding: "12px 5px" }}>{formatFileSize(doc.fileSize)}</td>
                       <td style={{ padding: "12px 5px", color: "var(--text-muted)", fontSize: "0.8rem" }}>{doc.fileType}</td>
                       <td style={{ padding: "12px 5px" }}>{new Date(doc.createdAt).toLocaleString("de-CH")}</td>
@@ -620,8 +620,8 @@ export default function CaseDetailPage() {
                   onChange={(e) => setPromptText(e.target.value)}
                   required
                   disabled={isAnalyzing}
-                  rows={4}
-                  style={{ resize: "vertical", fontSize: "0.9rem", lineHeight: "1.4" }}
+                  rows={6}
+                  style={{ resize: "vertical", fontSize: "0.9rem", lineHeight: "1.4", minHeight: "150px" }}
                 />
               </div>
 
@@ -826,11 +826,26 @@ export default function CaseDetailPage() {
         </div>
 
         {/* Section 4: Saved Results */}
-        <div className="card" style={{ display: "flex", flexDirection: "column", gridColumn: "span 2" }}>
+        <div className="card" style={{ display: "flex", flexDirection: "column", gridColumn: "span 2", borderTop: "4px solid var(--primary-color)" }}>
           <h2 style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", margin: "0 0 15px 0" }}>
             Gespeicherte Ergebnisse
             <span style={{ fontSize: "0.75rem", backgroundColor: "var(--bg-color)", padding: "4px 8px", borderRadius: "12px", color: "var(--text-muted)", fontWeight: "normal" }}>Momentaufnahmen ({savedResults.length})</span>
           </h2>
+
+          {savedResults.length > 0 && (
+            <div style={{ 
+              fontSize: "0.85rem", 
+              color: "#475569", 
+              backgroundColor: "#f8fafc", 
+              padding: "12px 15px", 
+              borderRadius: "6px", 
+              border: "1px solid #cbd5e1", 
+              marginBottom: "15px",
+              lineHeight: "1.4"
+            }}>
+              ℹ️ <strong>Momentaufnahmen:</strong> Diese Einträge sind dauerhaft gespeicherte Zwischenstände. Sie bleiben unverändert als Abbild erhalten, selbst wenn das ursprüngliche Dokument oder die ursprüngliche Analyse gelöscht wird.
+            </div>
+          )}
           
           {savedResults.length === 0 ? (
             <div className="empty-state" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minHeight: "150px" }}>
@@ -874,7 +889,7 @@ export default function CaseDetailPage() {
                           <span>•</span>
                           <span>
                             Dokument: {doc ? (
-                              <strong style={{ color: "var(--text-color)" }}>{doc.title} ({doc.fileName})</strong>
+                              <strong style={{ color: "var(--text-color)", wordBreak: "break-all" }}>{doc.title} ({doc.fileName})</strong>
                             ) : (
                               <span style={{ fontStyle: "italic", color: "#dc3545" }}>Gelöscht (Momentaufnahme bleibt erhalten)</span>
                             )}
@@ -928,7 +943,9 @@ export default function CaseDetailPage() {
                           padding: "15px",
                           borderRadius: "6px",
                           border: "1px solid #eee",
-                          marginBottom: "15px"
+                          marginBottom: "15px",
+                          maxHeight: "350px",
+                          overflowY: "auto"
                         }}>
                           {savedRes.resultText}
                         </div>

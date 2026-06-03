@@ -52,7 +52,7 @@ export default function CasesPage() {
   };
 
   return (
-    <div>
+    <div className="container-constrained">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
         <h1 style={{ margin: 0 }}>Analysefälle</h1>
         {!isCreating && isSupabaseConfigured && (
@@ -145,7 +145,7 @@ export default function CasesPage() {
                 onClick={() => selectCase(c.id)}
                 style={{ cursor: "pointer", flex: 1 }}
               >
-                <h3>{c.title} {c.id === activeCaseId && <span style={{ fontSize: "0.8rem", color: "var(--primary-color)", marginLeft: "10px" }}>(Aktiv)</span>}</h3>
+                <h3>{c.title}</h3>
                 {c.description && <p style={{ margin: "5px 0 0 0" }}>{c.description}</p>}
                 <div className="case-meta">
                   Erstellt am: {new Date(c.createdAt).toLocaleString("de-CH")}
