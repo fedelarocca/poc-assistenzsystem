@@ -6,9 +6,41 @@ import { useParams } from "next/navigation";
 import { useCases } from "../../../hooks/useCases";
 import { useDocuments } from "../../../hooks/useDocuments";
 import { isSupabaseConfigured } from "../../../lib/supabase";
-
 import { useAnalysis } from "../../../hooks/useAnalysis";
 import { useSavedResults } from "../../../hooks/useSavedResults";
+
+const PROMPT_SUGGESTIONS = [
+  {
+    id: "risk",
+    title: "Risikoanalyse",
+    description: "Identifiziert Risiken, Unklarheiten und Prüfpunkte.",
+    prompt: "Analysiere die Textgrundlage aus Sicht des strategischen Einkaufs. Identifiziere potenzielle Risiken, Unklarheiten und prüfungsrelevante Punkte. Strukturiere die Antwort nach Beobachtung, Relevanz und empfohlener Prüfung."
+  },
+  {
+    id: "requirements",
+    title: "Anforderungen extrahieren",
+    description: "Extrahiert Muss-/Optionale Anforderungen und offene Punkte.",
+    prompt: "Extrahiere die wichtigsten fachlichen, technischen und organisatorischen Anforderungen aus der Textgrundlage. Gliedere die Antwort in Muss-Anforderungen, optionale Anforderungen und offene Punkte."
+  },
+  {
+    id: "deadlines",
+    title: "Fristen und Termine prüfen",
+    description: "Sucht nach Fristen und zeitkritischen Vorgaben.",
+    prompt: "Identifiziere alle relevanten Fristen, Termine, Abgabepunkte und zeitkritischen Anforderungen in der Textgrundlage. Weise darauf hin, wenn keine eindeutigen Fristen erkennbar sind."
+  },
+  {
+    id: "questions",
+    title: "Unklarheiten und Rückfragen",
+    description: "Formuliert konkrete Rückfragen an den Auftraggeber.",
+    prompt: "Analysiere die Textgrundlage auf unklare, widersprüchliche oder interpretationsbedürftige Stellen. Formuliere daraus konkrete Rückfragen an den Auftraggeber."
+  },
+  {
+    id: "summary",
+    title: "Management-Zusammenfassung",
+    description: "Erstellt eine prägnante Zusammenfassung für Entscheider.",
+    prompt: "Erstelle eine kurze Management-Zusammenfassung der Textgrundlage für den strategischen Einkauf. Hebe Ziel, zentrale Anforderungen, mögliche Risiken und empfohlene nächste Schritte hervor."
+  }
+];
 
 export default function CaseDetailPage() {
   const params = useParams();
@@ -68,6 +100,28 @@ export default function CaseDetailPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<"documents" | "analysis" | "results" | "saved">("documents");
   const [hasAutoSwitched, setHasAutoSwitched] = useState(false);
+
+  const [promptFeedback, setPromptFeedback] = useState("");
+  const feedbackTimeoutRef = useRef<any>(null);
+
+  const applySuggestion = (prompt: string, title: string) => {
+    setPromptText(prompt);
+    setPromptFeedback(`✓ Prompt "${title}" übernommen`);
+    if (feedbackTimeoutRef.current) {
+      clearTimeout(feedbackTimeoutRef.current);
+    }
+    feedbackTimeoutRef.current = setTimeout(() => {
+      setPromptFeedback("");
+    }, 2500);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (feedbackTimeoutRef.current) {
+        clearTimeout(feedbackTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Auto switch default tab once when docs are loaded
   useEffect(() => {
@@ -661,6 +715,53 @@ export default function CaseDetailPage() {
                     rows={6}
                     style={{ resize: "vertical", fontSize: "0.9rem", lineHeight: "1.4", minHeight: "150px" }}
                   />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: "20px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                    <span className="form-label" style={{ margin: 0, fontWeight: "600" }}>Prompt-Vorschläge (Schnellauswahl)</span>
+                    {promptFeedback && (
+                      <span style={{ fontSize: "0.8rem", color: "var(--success-color)", fontWeight: "600", transition: "opacity 0.2s" }}>
+                        {promptFeedback}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ 
+                    display: "grid", 
+                    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", 
+                    gap: "10px" 
+                  }}>
+                    {PROMPT_SUGGESTIONS.map((sug) => (
+                      <div 
+                        key={sug.id}
+                        style={{ 
+                          display: "flex", 
+                          flexDirection: "column", 
+                          justifyContent: "space-between", 
+                          padding: "10px 12px", 
+                          backgroundColor: "#f8fafc", 
+                          border: "1px solid var(--border-color)", 
+                          borderRadius: "6px",
+                          gap: "8px",
+                          textAlign: "left"
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: "0.8rem", fontWeight: "600", color: "var(--primary-color)" }}>{sug.title}</div>
+                          <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "2px", lineHeight: "1.3" }}>{sug.description}</div>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          style={{ padding: "4px 8px", fontSize: "0.75rem", alignSelf: "stretch", textAlign: "center", display: "block" }}
+                          disabled={isAnalyzing}
+                          onClick={() => applySuggestion(sug.prompt, sug.title)}
+                        >
+                          Verwenden
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <button

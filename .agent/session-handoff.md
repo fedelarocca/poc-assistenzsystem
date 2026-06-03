@@ -2,19 +2,20 @@
 
 ## Aktueller Stand
 
-Iteration I-10 wurde erfolgreich abgeschlossen. Der Case-Arbeitsraum auf der Detailseite wurde auf Basis des Jesse James Garrett UX-Modells gezielt restrukturiert (Structure- und Skeleton-Ebene). Er wurde von einem überladenen 4-Kachel-Dashboard in einen workflow- und tab-basierten Arbeitsraum überführt, ohne die Fachlogik zu verändern.
+Iteration I-10 wurde erfolgreich abgeschlossen. Der Case-Arbeitsraum auf der Detailseite wurde auf Basis des Jesse James Garrett UX-Modells gezielt restrukturiert (Structure- und Skeleton-Ebene). Er wurde von einem überladenen 4-Kachel-Dashboard in einen workflow- und tab-basierten Arbeitsraum überführt und durch statische Prompt-Vorschläge ergänzt.
 
 ### Wichtigste Meilensteine:
 1. **Layout-Restrukturierung (Garrett-UX-Modell)**: Die Detailseite zeigt nun immer nur einen aktiven Arbeitsbereich (Dokumente, Analyse ausführen, Ergebnisse prüfen, Gespeicherte Ergebnisse) über eine flache Navigation. Das reduziert die kognitive Belastung drastisch.
 2. **Kompakter Case-Header**: Der Header ist deutlich kompakter (Titel, Beschreibung, ID, Datum) und nimmt wenig vertikale Fläche ein.
 3. **Default-Tab-Automatik**: Weist ein Case mindestens ein Dokument mit vorhandener Textbasis auf, wechselt die Ansicht automatisch auf den Tab "Analyse ausführen". Andernfalls verbleibt sie auf "Dokumente".
-4. **Schutz vor Layoutsprengung**: UUIDs und lange Dateinamen brechen dank CSS-Klassen kontrolliert um (Ellipsis bei max-width für Dateinamen).
-5. **Visueller Ladezustand**: Ein neuer, blauer Ladebereich mit rotierendem CSS-Spinner (`.spinner` via CSS Keyframes) gibt unmittelbares Feedback während der LLM-Analysen.
-6. **Ergebnisse & Momentaufnahmen**:
+4. **Prompt-Vorschläge (Schnellauswahl für F5)**: 5 statische e-procurement-spezifische Prompts stehen dem Nutzer unter der Textarea per Klick ("Verwenden") zur Verfügung. Der Text wird direkt ins Textfeld kopiert, bleibt editierbar und gibt bei Klick eine kurze Erfolgsmeldung aus.
+5. **Schutz vor Layoutsprengung**: UUIDs und Dateinamen brechen dank CSS-Klassen kontrolliert um (Ellipsis bei max-width für Dateinamen).
+6. **Visueller Ladezustand**: Ein neuer, blauer Ladebereich mit rotierendem CSS-Spinner (`.spinner` via CSS Keyframes) gibt unmittelbares Feedback während der LLM-Analysen.
+7. **Ergebnisse & Momentaufnahmen**:
    - Die KI-Ergebnisse dehnenden Inhaltsbereich unbegrenzt nach unten aus (keine inneren Scrollboxen in der Historie).
    - Das Speicherformular ist direkt sichtbar bei aufgeklappten, ungespeicherten Resultaten.
    - Snapshots in Tab 4 sind auf `max-height: 350px` begrenzt, um die Übersichtlichkeit zu wahren.
-7. **Erfolgreicher Build**: Der Next.js-Produktionsbuild (`npm run build`) kompiliert und läuft fehlerfrei.
+8. **Erfolgreicher Build**: Der Next.js-Produktionsbuild (`npm run build`) kompiliert und läuft fehlerfrei.
 
 ---
 
@@ -28,6 +29,7 @@ Iteration I-10 wurde erfolgreich abgeschlossen. Der Case-Arbeitsraum auf der Det
 - **Iteration I-10 (Layout, Workflow & Stabilität)**:
   - Analyse der Case-Detailseite nach Jesse James Garretts UX-Modell (Structure/Skeleton vs Surface).
   - Restrukturierung der Detailseite in ein Tab-Workflow-System.
+  - Hinzufügen der statischen Prompt-Vorschläge (Schnellauswahl) unter der Textarea.
   - Integration von `.container-constrained` auf Übersichts- und Detailseiten.
   - Entfernung von literal-Text "(Aktiv)" aus den Case-Karten (rein visuelle Indikatoren).
   - Spaltenschutz durch aggressive Zeilenumbrüche `.technical-path` für Pfade und IDs.
