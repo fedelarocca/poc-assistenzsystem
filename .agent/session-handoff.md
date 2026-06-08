@@ -2,41 +2,53 @@
 
 ## Aktueller Stand
 
-Iteration I-10 wurde erfolgreich abgeschlossen und die Case-Detailseite in ein Workflow-Tab-System überführt. 
+Iteration I-11 wurde erfolgreich abgeschlossen. Es handelte sich um eine lokale Nutzungsszenario- und End-to-End-Evaluation des bestehenden MVP in der lokalen Entwicklungsumgebung, um empirische Evidenzen für die Bachelorarbeit zu generieren. 
 
-Wir befinden uns aktuell in der Vorbereitung und Durchführung der **Iteration I-11**. Dies ist eine reine Nutzungsszenario- und End-to-End-Evaluation des bestehenden MVP in der lokalen Entwicklungsumgebung. Es werden keine Änderungen am Anwendungscode vorgenommen.
+Es wurden keine funktionalen Änderungen am Anwendungscode vorgenommen. Die Evaluation wurde mit einem anonymisierten, textbasierten Kundendokument durchgeführt. Die folgenden vier Nutzungsszenarien wurden erfolgreich geprüft:
+- **S1:** Analysefall erstellen
+- **S2:** Dokument hochladen und Text extrahieren
+- **S3:** KI-Analyse mit Prompt durchführen
+- **S4:** Ergebnis speichern und wiederfinden
 
-### Wichtigste Meilensteine:
-1. **Planungsfreigabe:** Der Implementation & Evaluation Plan für I-11 wurde freigegeben.
-2. **Evidence-Vorbereitung:** Die strukturellen Evidence-Templates im Ordner `03_Evidence/` wurden erfolgreich angelegt und vorbereitet.
-3. **Ausstehende manuelle E2E-Evaluation:** Die vier definierten Nutzungsszenarien (S1–S4) werden im nächsten Schritt manuell durch den Benutzer evaluiert und dokumentiert.
+Der lokale Produktionsbuild (`npm run build`) war erfolgreich. Alle Ergebnisse und Nachweise sind im lokalen Evidence-Ordner `03_Evidence` dokumentiert.
+
+> [!NOTE]
+> Der Ordner `03_Evidence` liegt bewusst ausserhalb des Git-Repositories und wird als thesisbezogene Evidenzbasis separat geführt.
 
 ---
 
-## Letzte erledigte Schritte (I-10 & I-11 Vorbereitung)
+## Letzte erledigte Schritte (I-11 & I-10)
 
+- **Iteration I-11 (Nutzungsszenario- & E2E-Evaluation)**:
+  - I-11 Evidence-Templates wurden vorbereitet.
+  - Die manuelle E2E-Evaluation S1–S4 wurde durchgeführt.
+  - Die Screenshots zu S1–S4 wurden erstellt.
+  - Das E2E-Evaluationsprotokoll wurde ausgefüllt.
+  - Die Bewertungsmatrix F1–F9 wurde ausgefüllt.
+  - Der Build-Log wurde mit echtem `npm run build`-Output ergänzt.
+  - Es wurden keine neuen Features und keine Codeänderungen vorgenommen.
 - **Iteration I-10 (Restrukturierung Case-Arbeitsraum)**:
   - Tab-Workflow-System unter dem Case-Header implementiert.
   - Emojis aus Navigationsschaltflächen entfernt.
   - Statische Prompt-Vorschläge (Schnellauswahl) mit Feedback-Statusmeldung integriert.
   - `.container-constrained` und Spaltenschutz `.technical-path` verankert.
   - Erfolgreiche Build-Verifikation durchgeführt.
-- **Iteration I-11 (Evaluation MVP - Vorbereitung)**:
-  - Erstellung der leeren Evidence-Dokumentationsrahmen (Templates) für die Testläufe, Promptauszüge, das Protokoll und die Bewertungsmatrix.
-  - Verlinkung und Validierung der Dateipfade.
 
 ---
 
 ## Nächste geplante Iterationen
 
 ### I-12: Bugfixes & kleinere Optimierungen
-Korrektur von Fehlern, UI-Schwachstellen oder Optimierungspotenzialen, die sich direkt aus der End-to-End-Evaluation in I-11 ergeben.
 
-### I-13: Vercel Deployment (Vorschau- & Machbarkeitstest)
-Das Ausbringen der App auf die Vercel-Cloudplattform inklusive der Konfiguration der Umgebungsvariablen wird als separater, nachgelagerter Schritt in Iteration I-13 durchgeführt.
+Da die I-11-Evaluation keine blockierenden Fehler ergeben hat, ist I-12 voraussichtlich nur für kleinere Review-, Cleanup- oder Optimierungspunkte nötig. Falls keine konkreten Bugfixes identifiziert werden, kann I-12 sehr knapp dokumentiert oder übersprungen werden.
+
+### I-13: Vercel Preview Deployment / Deployment-Machbarkeitsprüfung
+
+Das Vercel Deployment bleibt als separater späterer Schritt vorgesehen. Es soll nicht als produktionsreife Bereitstellung verstanden werden, sondern als technische Machbarkeitsprüfung beziehungsweise Preview-Deployment. Dabei dürfen keine echten Kundendokumente, keine vertraulichen Inhalte und keine Secrets dokumentiert oder hochgeladen werden.
 
 ---
 
 ## Blocker
 
-- Keine technischen Blocker. Die manuelle E2E-Evaluation ist zur Durchführung bereit.
+- Keine aktuellen technischen Blocker aus I-11.
+- Offene Cleanup-Punkte: untracked technische Testdateien und Build-Artefakte sollen später in einer Abschluss-/Cleanup-Iteration geprüft werden, nicht im Rahmen von I-11.
