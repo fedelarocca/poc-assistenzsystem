@@ -2,50 +2,41 @@
 
 ## Aktueller Stand
 
-Iteration I-10 wurde erfolgreich abgeschlossen. Der Case-Arbeitsraum auf der Detailseite wurde auf Basis des Jesse James Garrett UX-Modells gezielt restrukturiert (Structure- und Skeleton-Ebene). Er wurde von einem überladenen 4-Kachel-Dashboard in einen workflow- und tab-basierten Arbeitsraum überführt und durch statische Prompt-Vorschläge ergänzt.
+Iteration I-10 wurde erfolgreich abgeschlossen und die Case-Detailseite in ein Workflow-Tab-System überführt. 
+
+Wir befinden uns aktuell in der Vorbereitung und Durchführung der **Iteration I-11**. Dies ist eine reine Nutzungsszenario- und End-to-End-Evaluation des bestehenden MVP in der lokalen Entwicklungsumgebung. Es werden keine Änderungen am Anwendungscode vorgenommen.
 
 ### Wichtigste Meilensteine:
-1. **Layout-Restrukturierung (Garrett-UX-Modell)**: Die Detailseite zeigt nun immer nur einen aktiven Arbeitsbereich (Dokumente, Analyse ausführen, Ergebnisse prüfen, Gespeicherte Ergebnisse) über eine flache Navigation. Das reduziert die kognitive Belastung drastisch.
-2. **Kompakter Case-Header**: Der Header ist deutlich kompakter (Titel, Beschreibung, ID, Datum) und nimmt wenig vertikale Fläche ein.
-3. **Default-Tab-Automatik**: Weist ein Case mindestens ein Dokument mit vorhandener Textbasis auf, wechselt die Ansicht automatisch auf den Tab "Analyse ausführen". Andernfalls verbleibt sie auf "Dokumente".
-4. **Prompt-Vorschläge (Schnellauswahl für F5)**: 5 statische e-procurement-spezifische Prompts stehen dem Nutzer unter der Textarea per Klick ("Verwenden") zur Verfügung. Der Text wird direkt ins Textfeld kopiert, bleibt editierbar und gibt bei Klick eine kurze Erfolgsmeldung aus.
-5. **Schutz vor Layoutsprengung**: UUIDs und Dateinamen brechen dank CSS-Klassen kontrolliert um (Ellipsis bei max-width für Dateinamen).
-6. **Visueller Ladezustand**: Ein neuer, blauer Ladebereich mit rotierendem CSS-Spinner (`.spinner` via CSS Keyframes) gibt unmittelbares Feedback während der LLM-Analysen.
-7. **Ergebnisse & Momentaufnahmen**:
-   - Die KI-Ergebnisse dehnenden Inhaltsbereich unbegrenzt nach unten aus (keine inneren Scrollboxen in der Historie).
-   - Das Speicherformular ist direkt sichtbar bei aufgeklappten, ungespeicherten Resultaten.
-   - Snapshots in Tab 4 sind auf `max-height: 350px` begrenzt, um die Übersichtlichkeit zu wahren.
-8. **Erfolgreicher Build**: Der Next.js-Produktionsbuild (`npm run build`) kompiliert und läuft fehlerfrei.
+1. **Planungsfreigabe:** Der Implementation & Evaluation Plan für I-11 wurde freigegeben.
+2. **Evidence-Vorbereitung:** Die strukturellen Evidence-Templates im Ordner `03_Evidence/` wurden erfolgreich angelegt und vorbereitet.
+3. **Ausstehende manuelle E2E-Evaluation:** Die vier definierten Nutzungsszenarien (S1–S4) werden im nächsten Schritt manuell durch den Benutzer evaluiert und dokumentiert.
 
 ---
 
-## Letzte erledigte Schritte (I-09 & I-10)
+## Letzte erledigte Schritte (I-10 & I-11 Vorbereitung)
 
-- **Iteration I-09 (Ergebnisse speichern)**:
-  - SQL-Migration für `saved_results`.
-  - TypeScript-Interface und Custom React Hook `useSavedResults.ts`.
-  - UX-Vereinfachung des Speicher-Workflows (Formular direkt sichtbar, Standardtitel vorbelegt, Zurücksetzen-Aktion, Statusfeedback nach Speichern).
-  - Korrektur der `max-height`/Overflow-Probleme in der Historie.
-- **Iteration I-10 (Layout, Workflow & Stabilität)**:
-  - Analyse der Case-Detailseite nach Jesse James Garretts UX-Modell (Structure/Skeleton vs Surface).
-  - Restrukturierung der Detailseite in ein Tab-Workflow-System.
-  - Hinzufügen der statischen Prompt-Vorschläge (Schnellauswahl) unter der Textarea.
-  - Integration von `.container-constrained` auf Übersichts- und Detailseiten.
-  - Entfernung von literal-Text "(Aktiv)" aus den Case-Karten (rein visuelle Indikatoren).
-  - Spaltenschutz durch aggressive Zeilenumbrüche `.technical-path` für Pfade und IDs.
-  - 150px Min-Height-Vorgabe für Prompt-Bearbeitung.
-  - Scrollboxen für Saved-Results-Texte und visuelle Trennung von Section 4.
-  - Hinzufügen einer Lade-Spinner-Komponente für die KI-Analyse.
-  - Durchführung und Verifikation des `npm run build` Produktions-Builds.
+- **Iteration I-10 (Restrukturierung Case-Arbeitsraum)**:
+  - Tab-Workflow-System unter dem Case-Header implementiert.
+  - Emojis aus Navigationsschaltflächen entfernt.
+  - Statische Prompt-Vorschläge (Schnellauswahl) mit Feedback-Statusmeldung integriert.
+  - `.container-constrained` und Spaltenschutz `.technical-path` verankert.
+  - Erfolgreiche Build-Verifikation durchgeführt.
+- **Iteration I-11 (Evaluation MVP - Vorbereitung)**:
+  - Erstellung der leeren Evidence-Dokumentationsrahmen (Templates) für die Testläufe, Promptauszüge, das Protokoll und die Bewertungsmatrix.
+  - Verlinkung und Validierung der Dateipfade.
 
 ---
 
-## Nächste geplante Iteration
+## Nächste geplante Iterationen
 
-### I-11: [Vom Benutzer zu definieren]
+### I-12: Bugfixes & kleinere Optimierungen
+Korrektur von Fehlern, UI-Schwachstellen oder Optimierungspotenzialen, die sich direkt aus der End-to-End-Evaluation in I-11 ergeben.
+
+### I-13: Vercel Deployment (Vorschau- & Machbarkeitstest)
+Das Ausbringen der App auf die Vercel-Cloudplattform inklusive der Konfiguration der Umgebungsvariablen wird als separater, nachgelagerter Schritt in Iteration I-13 durchgeführt.
 
 ---
 
 ## Blocker
 
-- Keine technischen Blocker.
+- Keine technischen Blocker. Die manuelle E2E-Evaluation ist zur Durchführung bereit.
