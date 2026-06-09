@@ -2,40 +2,39 @@
 
 ## Aktueller Stand
 
-Iteration I-12 wurde erfolgreich abgeschlossen. Es handelte sich um eine Review-, Cleanup- und Stabilisierungsphase nach Abschluss der I-11-Evaluation, um das Repository vor dem geplanten Preview-Deployment in Iteration I-13 zu bereinigen und zu dokumentieren.
+Iteration I-13 wurde erfolgreich abgeschlossen. Es handelte sich um das Vercel Preview Deployment und die Einrichtung einer prototypischen Zugriffsbeschränkung per Demo-Token (Phase A & B).
 
-Es wurden keine neuen Features oder Codeänderungen an der Anwendungslogik vorgenommen. Folgende Verbesserungen wurden erzielt:
-- **Repository-Hygiene und Vorbereitung auf spätere Paketierung:** Löschung von 7 temporären untracked JavaScript-Testdateien und der Datei `dummy.pdf` im Hauptverzeichnis des Projekts.
-- **TypeScript-Cache-Bereinigung:** Lokaler Build-Cache `tsconfig.tsbuildinfo` wurde gelöscht.
-- **Sicherheitsprüfung (Security- & Secret-Check):** Erfolgreich verifiziert, dass keine Secrets, API-Schlüssel, echten Kundendaten oder sensible Screenshots im Git-Repository vorhanden sind. `.env.local` ist gemäss `.gitignore` sicher ausgeschlossen.
-- **Dokumentations-Update:** Die veraltete standardmässige Next.js-Boilerplate in der `README.md` wurde durch eine aussagekräftige Anleitung speziell für das PoC-Assistenzsystem (inkl. Stack, Setup, Workflow, Evidence und Grenzen) ersetzt.
-- **Build-Prüfung:** Der lokale Next.js-Produktionsbuild (`npm run build`) wurde erfolgreich ausgeführt und verifiziert.
-
----
-
-## Letzte erledigte Schritte (I-12 & I-11)
-
-- **Iteration I-12 (Review, Cleanup & Stabilisierung)**:
-  - Überprüfung und Löschung der 7 untracked Testdateien.
-  - Löschung der TypeScript Build-Cache-Datei `tsconfig.tsbuildinfo`.
-  - Formelle Validierung der `.gitignore`.
-  - Aktualisierung der `README.md` mit PoC-spezifischen Inhalten.
-  - Durchführung des Security- & Secret-Checks.
-  - Erfolgreiche Build-Verifikation mit `npm run build` und Dokumentation des Logs in `03_Evidence/04_Testlaeufe/I-12_build_log.txt`.
-- **Iteration I-11 (Nutzungsszenario- & E2E-Evaluation)**:
-  - E2E-Testläufe S1–S4 manuell ausgeführt.
-  - Erstellung der Screenshots und Befüllung der Bewertungsmatrix F1–F9.
+Folgende Ergebnisse wurden erzielt:
+- **Phase A (Demo-Token-Schutz):** 
+  - Integration einer statischen Token-Eingabe auf der Startseite mit LocalStorage-Speicherung.
+  - Clientseitige Weiterleitungen (`useEffect` mit Redirect) auf geschützten Seiten zur Erhöhung der Hürde.
+  - Serverseitiger Token-Schutz (Header-Prüfung auf `x-demo-token`) in den API-Routen für Analyse und Extraktion mit sofortigem 401-Abbruch bei Abweichung.
+  - Next.js-konforme Robots-Metadaten (`noindex, nofollow`) zur Verhinderung von Suchmaschinenindexierung.
+- **Phase B (Vercel Preview Deployment):**
+  - Erfolgreiche Bereitstellung der Anwendung auf Vercel unter `https://poc-assistenzsystem.vercel.app/` unter Verwendung des Root-Directories `02_Artefakt/poc-assistenzsystem`.
+  - Erfolgreiche Konfiguration aller Umgebungsvariablen (Supabase-Anbindung, Google Gemini, Demo-Token) im Vercel-Dashboard.
+  - Erfolgreiche manuelle E2E-Smoke-Tests unter Verwendung künstlicher Testdaten. Der vollständige MVP-Workflow (Fallanlage, Dokumenten-Upload, Textextraktion, Analyse und Speicherung) ist online lauffähig.
 
 ---
 
-## Nächste geplante Iterationen
+## Letzte erledigte Schritte (I-13)
 
-### I-13: Vercel Preview Deployment / Deployment-Machbarkeitsprüfung
+- **Iteration I-13 (Vercel Preview Deployment & Token-Gate)**:
+  - Umsetzung der Tokenprüfung auf Server- und Clientebene.
+  - Lokaler Build-Check und Git Commit `07f4203991d4686c846b60f741d9f01f7f0aec50`.
+  - Git Push nach GitHub durchgeführt.
+  - Manuelle Konfiguration und erfolgreiches Cloud-Deployment auf Vercel.
+  - Durchführung der Smoke-Tests und Dokumentation in `03_Evidence/04_Testlaeufe/I-13_smoke_test.md` und `03_Evidence/04_Testlaeufe/I-13_vercel_deployment_log.md`.
+  - Aktualisierung der `README.md` und des `session-handoff.md`.
 
-Die nächste Iteration I-13 dient der Ausbringung des Systems auf der Vercel-Cloudplattform als Preview-Deployment beziehungsweise technische Machbarkeitsprüfung. Es handelt sich ausdrücklich nicht um eine produktionsreife Bereitstellung. Im Rahmen der Veröffentlichung werden keine echten Kundendokumente, vertraulichen Inhalte oder Secrets dokumentiert oder hochgeladen.
+---
+
+## Nächste geplante Schritte
+
+Das PoC-Assistenzsystem ist mit Iteration I-13 vollumfänglich in der Cloud deployed und unter einer prototypischen Zugriffsbeschränkung getestet. Die nächsten Schritte hängen von den Rückmeldungen des Dozenten oder weiteren Evaluationsrunden ab.
 
 ---
 
 ## Blocker
 
-- Keine aktuellen technischen Blocker. Das Repository befindet sich in einem sauberen Zustand und ist bereit für das Preview-Deployment in I-13.
+- Keine aktuellen technischen Blocker. Das System läuft stabil in der Vercel-Cloud.

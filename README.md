@@ -9,6 +9,16 @@ Das System dient als minimaler Einkaufsassistent zur Voranalyse von Ausschreibun
 
 ---
 
+## Cloud Deployment (Preview)
+
+Das System ist im Rahmen einer technischen Machbarkeitsprüfung als Preview-Deployment in der Cloud bereitgestellt:
+*   **Preview-URL:** `https://poc-assistenzsystem.vercel.app/`
+*   **Zugriffsschutz:** Zum Schutz vor unbeabsichtigten Zugriffen ist eine einfache, statische Zugriffshürde per Demo-Token integriert. Der Demo-Token muss im Browser-Speicher hinterlegt werden, um geschützte Seiten zu betreten. Die tatsächliche Validierung erfolgt serverseitig bei API-Aktionen.
+*   **Daten-Scope:** Im Preview Deployment dürfen ausschliesslich künstliche Testdaten verwendet werden.
+*   **Suchmaschinen-Indexierung:** Über Robots-Metadaten (`noindex, nofollow`) wird Suchmaschinen signalisiert, dass das Preview Deployment nicht indexiert werden soll. Dies ist ein zusätzlicher Crawler-Hinweis und kein Sicherheitsmechanismus.
+
+---
+
 ## 1. Kurzbeschreibung des MVP
 
 Das System unterstützt den strategischen Einkauf durch folgende Kernfunktionen:
@@ -84,7 +94,7 @@ Der Ordner `03_Evidence/` auf Workspace-Ebene liegt **bewusst ausserhalb des Git
 ## 6. Einschränkungen (Limitations)
 
 Da es sich um ein Proof of Concept handelt, gelten folgende Einschränkungen:
-*   Keine Authentifizierung oder Benutzerrollen (Single-User Betrieb).
+*   Keine produktionsreife Authentifizierung oder Benutzerrollen. Es besteht lediglich eine einfache prototypische Zugriffshürde per statischem Demo-Token.
 *   Keine Mandantentrennung (alle Cases liegen in derselben Datenbank).
 *   Kein OCR-Support (nur digital lesbare Textdateien, PDFs oder Word-Dokumente werden unterstützt; eingescannte Dokumente können nicht verarbeitet werden).
 *   Keine verbindliche fachliche oder rechtliche Bewertung durch die KI. Die KI-Outputs dienen ausschliesslich der Orientierung und Voranalyse.
