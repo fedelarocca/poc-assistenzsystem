@@ -1,23 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCases } from "../../hooks/useCases";
 import { isSupabaseConfigured } from "../../lib/supabase";
 
 export default function CasesPage() {
+  const router = useRouter();
+  const [hasToken, setHasToken] = useState<boolean | null>(null);
   const { cases, activeCaseId, isLoaded, error, addCase, selectCase, deleteCase } = useCases();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [pendingDeleteCaseId, setPendingDeleteCaseId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
+  useEffect(() => {
+    const token = localStorage.getItem("poc_demo_token");
+    if (!token) {
+      router.push("/");
+      setHasToken(false);
+    } else {
+      setHasToken(true);
+    }
+  }, [router]);
+
   // Avoid hydration mismatch by waiting for local storage to load
-  if (!isLoaded) {
+  if (hasToken === null || hasToken === false || !isLoaded) {
     return (
-      <div>
+      <div style={{ padding: "20px" }}>
         <h1>Analysefälle</h1>
-        <p>Lade...</p>
+        <p>Prüfe Demo-Zugangsschlüssel...</p>
       </div>
     );
   }

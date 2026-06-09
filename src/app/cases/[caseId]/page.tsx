@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useCases } from "../../../hooks/useCases";
 import { useDocuments } from "../../../hooks/useDocuments";
 import { isSupabaseConfigured } from "../../../lib/supabase";
@@ -43,6 +43,8 @@ const PROMPT_SUGGESTIONS = [
 ];
 
 export default function CaseDetailPage() {
+  const router = useRouter();
+  const [hasToken, setHasToken] = useState<boolean | null>(null);
   const params = useParams();
   const caseId = params?.caseId as string;
   const { cases, isLoaded: isCasesLoaded, error: casesError } = useCases();
@@ -116,6 +118,16 @@ export default function CaseDetailPage() {
   };
 
   useEffect(() => {
+    const token = localStorage.getItem("poc_demo_token");
+    if (!token) {
+      router.push("/");
+      setHasToken(false);
+    } else {
+      setHasToken(true);
+    }
+  }, [router]);
+
+  useEffect(() => {
     return () => {
       if (feedbackTimeoutRef.current) {
         clearTimeout(feedbackTimeoutRef.current);
@@ -136,11 +148,11 @@ export default function CaseDetailPage() {
   }, [isDocsLoaded, caseId, getDocumentsByCaseId, hasAutoSwitched]);
 
   // Avoid hydration mismatch by waiting for local storage to load
-  if (!isCasesLoaded || !isDocsLoaded || !isAnalysisLoaded || !isSavedResultsLoaded) {
+  if (hasToken === null || hasToken === false || !isCasesLoaded || !isDocsLoaded || !isAnalysisLoaded || !isSavedResultsLoaded) {
     return (
       <div style={{ padding: "20px" }}>
         <h1>Analysefall Details</h1>
-        <p>Lade Analysefall...</p>
+        <p>Prüfe Demo-Zugangsschlüssel...</p>
       </div>
     );
   }

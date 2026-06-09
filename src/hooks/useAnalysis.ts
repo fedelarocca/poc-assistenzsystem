@@ -82,10 +82,12 @@ export function useAnalysis(caseId?: string) {
 
     try {
       setError(null);
+      const token = typeof window !== "undefined" ? localStorage.getItem("poc_demo_token") || "" : "";
       const res = await fetch("/api/analysis/run", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-demo-token": token,
         },
         body: JSON.stringify({
           caseId: targetCaseId,

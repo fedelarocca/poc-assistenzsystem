@@ -5,6 +5,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "PoC Assistenzsystem",
   description: "Webbasiertes Assistenzsystem zur Analyse von Ausschreibungsunterlagen",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({

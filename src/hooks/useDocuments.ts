@@ -206,8 +206,12 @@ export function useDocuments() {
 
     try {
       setError(null);
+      const token = typeof window !== "undefined" ? localStorage.getItem("poc_demo_token") || "" : "";
       const res = await fetch(`/api/documents/${documentId}/extract-text`, {
         method: "POST",
+        headers: {
+          "x-demo-token": token,
+        },
       });
 
       const data = await res.json();

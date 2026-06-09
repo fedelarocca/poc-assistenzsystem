@@ -7,6 +7,24 @@ import { openai } from "@ai-sdk/openai";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  // 0. Verify Demo Access Token
+  const token = request.headers.get("x-demo-token");
+  const expectedToken = process.env.DEMO_ACCESS_TOKEN;
+  
+  if (!expectedToken || expectedToken.trim() === "" || expectedToken === "your_demo_access_token_here") {
+    return NextResponse.json(
+      { error: "Server-Fehler: Der Demo-Zugangsschlüssel ist serverseitig nicht konfiguriert." },
+      { status: 500 }
+    );
+  }
+
+  if (token !== expectedToken) {
+    return NextResponse.json(
+      { error: "Nicht autorisierter Zugriff: Der Demo-Token fehlt oder ist ungültig." },
+      { status: 401 }
+    );
+  }
+
   // 1. Verify Supabase configuration
   if (!isSupabaseConfigured || !supabase) {
     return NextResponse.json(
