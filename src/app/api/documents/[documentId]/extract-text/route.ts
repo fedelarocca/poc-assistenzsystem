@@ -98,11 +98,9 @@ export async function POST(
     } else if (ext === "pdf") {
       try {
         // @ts-ignore
-        const { CanvasFactory } = require("pdf-parse/worker");
-        // @ts-ignore
         const { PDFParse } = require("pdf-parse");
 
-        const parser = new PDFParse({ data: buffer, CanvasFactory });
+        const parser = new PDFParse({ data: buffer });
         await parser.load();
         const pdfData = await parser.getText();
         extractedText = pdfData.text || "";
