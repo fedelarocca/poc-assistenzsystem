@@ -2,39 +2,51 @@
 
 ## Aktueller Stand
 
-Iteration I-13 wurde erfolgreich abgeschlossen. Es handelte sich um das Vercel Preview Deployment und die Einrichtung einer prototypischen Zugriffsbeschränkung per Demo-Token (Phase A & B).
+Iteration I-15 (Bugfix) wurde erfolgreich abgeschlossen. Es handelte sich um die deployment-spezifische Stabilisierung der PDF-Textextraktion im Vercel Preview Deployment (Phasen A, B & C).
 
 Folgende Ergebnisse wurden erzielt:
-- **Phase A (Demo-Token-Schutz):** 
-  - Integration einer statischen Token-Eingabe auf der Startseite mit LocalStorage-Speicherung.
-  - Clientseitige Weiterleitungen (`useEffect` mit Redirect) auf geschützten Seiten zur Erhöhung der Hürde.
-  - Serverseitiger Token-Schutz (Header-Prüfung auf `x-demo-token`) in den API-Routen für Analyse und Extraktion mit sofortigem 401-Abbruch bei Abweichung.
-  - Next.js-konforme Robots-Metadaten (`noindex, nofollow`) zur Verhinderung von Suchmaschinenindexierung.
-- **Phase B (Vercel Preview Deployment):**
-  - Erfolgreiche Bereitstellung der Anwendung auf Vercel unter `https://poc-assistenzsystem.vercel.app/` unter Verwendung des Root-Directories `02_Artefakt/poc-assistenzsystem`.
-  - Erfolgreiche Konfiguration aller Umgebungsvariablen (Supabase-Anbindung, Google Gemini, Demo-Token) im Vercel-Dashboard.
-  - Erfolgreiche manuelle E2E-Smoke-Tests unter Verwendung künstlicher Testdaten. Der vollständige MVP-Workflow (Fallanlage, Dokumenten-Upload, Textextraktion, Analyse und Speicherung) ist online lauffähig.
+- **Phase A (Vorbereitung):** Entfernung von `CanvasFactory` und `pdf-parse/worker` in `route.ts`.
+- **Phase B (DOMMatrix-Polyfill):** 
+  - `@napi-rs/canvas` wurde als direkte Dependency in `package.json` aufgenommen.
+  - `@napi-rs/canvas` wurde in `serverExternalPackages` in `next.config.ts` deklariert.
+  - Die API-Route wurde auf `runtime = "nodejs"` gesetzt und `DOMMatrix`, `ImageData` und `Path2D` vor dem Laden von `pdf-parse` auf `globalThis` polyfilled.
+- **Phase C (PDF Worker File Tracing):**
+  - Explizites Inkludieren von `./node_modules/pdf-parse/dist/pdf-parse/cjs/pdf.worker.mjs` in das deployment bundle über `outputFileTracingIncludes` in `next.config.ts` mit dem Wildcard-Pfad `"/api/documents/**/*"`.
+  - Erfolgreiche manuelle E2E-Smoke-Tests auf der Vercel-Umgebung mit künstlichen Testdaten. Die PDF-Textextraktion läuft nun vollkommen stabil und speichert die Textgrundlagen in Supabase ab. Der Regressionstest für TXT-Dateien verlief ebenfalls fehlerfrei.
 
 ---
 
-## Letzte erledigte Schritte (I-13)
+## Technische Ursache und Lösung (I-15)
 
-- **Iteration I-13 (Vercel Preview Deployment & Token-Gate)**:
-  - Umsetzung der Tokenprüfung auf Server- und Clientebene.
-  - Lokaler Build-Check und Git Commit `07f4203991d4686c846b60f741d9f01f7f0aec50`.
-  - Git Push nach GitHub durchgeführt.
-  - Manuelle Konfiguration und erfolgreiches Cloud-Deployment auf Vercel.
-  - Durchführung der Smoke-Tests und Dokumentation in `03_Evidence/04_Testlaeufe/I-13_smoke_test.md` und `03_Evidence/04_Testlaeufe/I-13_vercel_deployment_log.md`.
-  - Aktualisierung der `README.md` und des `session-handoff.md`.
+1. **Fehlende Web-Standardklassen**:
+   - *Ursache*: Die PDF.js-Komponente von `pdf-parse` verlangte beim Laden `DOMMatrix`, `ImageData` und `Path2D` auf globaler Ebene. Diese fehlen standardmäßig in der Node.js Serverless Runtime von Vercel.
+   - *Lösung*: Serverseitiger Polyfill auf `globalThis` unter Verwendung der nativ kompilierten Entsprechungen von `@napi-rs/canvas`.
+2. **Fehlende Worker-Datei**:
+   - *Ursache*: `pdf-parse` lädt `pdf.worker.mjs` zur Laufzeit dynamisch. Next.js' statisches File Tracing (NFT) kopiert diese Datei standardmäßig nicht ins Serverless Function Bundle.
+   - *Lösung*: Hinzufügen des expliziten include-Pfades unter `outputFileTracingIncludes` in `next.config.ts`.
+
+*Fachliche Einschränkung*: Es besteht weiterhin keine OCR- oder Scan-PDF-Unterstützung (wie im PoC-Scope geplant). Es werden ausschliesslich textbasierte PDFs unterstützt.
+
+---
+
+## Letzte erledigte Schritte (I-15)
+
+- **Phase A, B & C (Stabilisierung PDF-Textextraktion)**:
+  - Umsetzung der Polyfills und File-Tracing-Regeln.
+  - Lokaler Build-Check (`npm run build`) und lokaler simulated-env PDF-Extraktionstest erfolgreich absolviert.
+  - Commit und Push der Phasen B & C.
+  - Erfolgreicher manueller E2E-Test auf der Vercel Preview-URL.
+  - Aktualisierung aller lokalen Evidence-Dateien und des globalen Session Handoffs.
 
 ---
 
 ## Nächste geplante Schritte
 
-Das PoC-Assistenzsystem ist mit Iteration I-13 vollumfänglich in der Cloud deployed und unter einer prototypischen Zugriffsbeschränkung getestet. Die nächsten Schritte hängen von den Rückmeldungen des Dozenten oder weiteren Evaluationsrunden ab.
+Da das PoC-Assistenzsystem lokal und auf Vercel preview deployment-seitig voll funktionsfähig und stabilisiert ist, sind keine weiteren funktionellen Artefaktentwicklungen geplant.
+- **Nächster Arbeitsschritt**: Finalisierung der Thesis-Kapitel 4 (Realisierung) und Kapitel 5 (Evaluation) auf Basis der hier generierten und gesicherten Evidence-Dateien.
 
 ---
 
 ## Blocker
 
-- Keine aktuellen technischen Blocker. Das System läuft stabil in der Vercel-Cloud.
+- Keine aktuellen technischen Blocker. Das System und alle seine Core-Features (Upload, PDF/TXT/DOCX-Textextraktion, Gemini-Analyse, Supabase-Datenhaltung) laufen stabil.
