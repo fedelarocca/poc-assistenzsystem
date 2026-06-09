@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase, isSupabaseConfigured } from "../../../../../lib/supabase";
 
+export const runtime = "nodejs";
+
 // Define the route params signature
 interface RouteParams {
   params: Promise<{
@@ -97,6 +99,22 @@ export async function POST(
       extractedText = buffer.toString("utf8");
     } else if (ext === "pdf") {
       try {
+        if (typeof globalThis.DOMMatrix === "undefined") {
+          const canvas = require("@napi-rs/canvas");
+
+          if (canvas.DOMMatrix) {
+            (globalThis as any).DOMMatrix = canvas.DOMMatrix;
+          }
+
+          if (canvas.ImageData && typeof globalThis.ImageData === "undefined") {
+            (globalThis as any).ImageData = canvas.ImageData;
+          }
+
+          if (canvas.Path2D && typeof globalThis.Path2D === "undefined") {
+            (globalThis as any).Path2D = canvas.Path2D;
+          }
+        }
+
         // @ts-ignore
         const { PDFParse } = require("pdf-parse");
 
