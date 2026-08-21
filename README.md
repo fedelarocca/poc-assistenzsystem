@@ -12,7 +12,7 @@ Das System dient als minimaler Einkaufsassistent zur Voranalyse von Ausschreibun
 ## Cloud Deployment (Preview)
 
 Das System ist im Rahmen einer technischen Machbarkeitsprüfung als Preview-Deployment in der Cloud bereitgestellt:
-*   **Preview-URL:** `https://poc-assistenzsystem.vercel.app/`
+*   **Preview-URL:** `https://*******************/`
 *   **Zugriffsschutz:** Zum Schutz vor unbeabsichtigten Zugriffen ist eine einfache, statische Zugriffshürde per Demo-Token integriert. Der Demo-Token muss im Browser-Speicher hinterlegt werden, um geschützte Seiten zu betreten. Die tatsächliche Validierung erfolgt serverseitig bei API-Aktionen.
 *   **Daten-Scope:** Im Preview Deployment dürfen ausschliesslich künstliche Testdaten verwendet werden.
 *   **Suchmaschinen-Indexierung:** Über Robots-Metadaten (`noindex, nofollow`) wird Suchmaschinen signalisiert, dass das Preview Deployment nicht indexiert werden soll. Dies ist ein zusätzlicher Crawler-Hinweis und kein Sicherheitsmechanismus.
